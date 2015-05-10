@@ -1,0 +1,17 @@
+[
+    {
+        "name": "mellant",
+        "description": "Cuisine",
+        "scheduled-path": "\/media\/salle_des_coffres\/Photos\/BigBro\/mellant",
+        "triggered-path": "\/media\/salle_des_coffres\/Photos\/BigBro\/mellant\/alert",
+        "scheduled-files-filter": "*-snapshot.jpg",
+        "triggered-files-filter": "*.jpg",
+        "stream-url": "\/stream\/mellant\/",
+        "detection-status": {
+            "url": "http:\/\/mellant:8081\/0\/detection\/status",
+            "active-string": "Detection status ACTIVE"
+        },
+        "tags": [
+        ]
+    }
+]

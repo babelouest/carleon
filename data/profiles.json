@@ -1,0 +1,123 @@
+[
+    {
+        "id": 1,
+        "display": "Default profile",
+        "default": 1,
+        "tabs": [
+            {
+                "id": 0,
+                "groups": [
+                    {
+                        "id": 0,
+                        "display": "Default"
+                    }
+                ]
+            }
+        ],
+        "options": {
+            "mpcs": [],
+            "radios": [
+                {
+                    "name": "radiolocoogg",
+                    "stream": false,
+                    "data": false
+                }
+            ],
+            "adminMode": false
+        }
+    },
+    {
+        "id": "2",
+        "display": "Nicolas",
+        "default": 0,
+        "tabs": [],
+        "options": {
+            "mpcs": [],
+            "radios": [
+                {
+                    "name": "radiolocoogg",
+                    "stream": false,
+                    "data": false
+                }
+            ]
+        }
+    },
+    {
+        "id": "3",
+        "display": "Bob",
+        "default": 0,
+        "tabs": [
+            {
+                "id": 0,
+                "groups": [
+                    {
+                        "id": 0,
+                        "display": "Tableau de bord"
+                    },
+                    {
+                        "id": 1,
+                        "display": "Musique"
+                    }
+                ]
+            }
+        ],
+        "options": {
+            "mpcs": [],
+            "radios": [
+                {
+                    "name": "radiolocoogg",
+                    "stream": false,
+                    "data": false
+                }
+            ],
+            "foldScripts": true,
+            "adminMode": false,
+            "foldSchedules": true,
+            "foldActions": false,
+            "monitors": [
+                {
+                    "name": "0",
+                    "display": "New monitor",
+                    "elements": [
+                        {
+                            "type": "heater",
+                            "device": "UNO1",
+                            "name": "0",
+                            "color": "#00CED1"
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "id": "4",
+        "display": "Test",
+        "default": 0,
+        "tabs": [
+            {
+                "id": 0,
+                "groups": [
+                    {
+                        "id": 0,
+                        "display": "Dashboard"
+                    }
+                ]
+            }
+        ],
+        "options": {
+            "mpcs": [],
+            "radios": [
+                {
+                    "name": "radiolocoogg",
+                    "stream": false,
+                    "data": false
+                }
+            ],
+            "adminMode": true,
+            "foldScripts": false,
+            "foldSchedules": false,
+            "foldActions": false
+        }
+    }
+]

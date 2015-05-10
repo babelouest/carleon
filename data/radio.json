@@ -1,0 +1,15 @@
+[
+    {
+        "name": "radiolocoogg",
+        "description": "Radio Loco OGG (64 kb, mono)",
+        "url": "\/radio\/flux.ogg",
+        "type": "audio\/ogg",
+        "host": "localhost",
+        "port": "1201",
+        "requestName": "fluxOGG",
+        "control": true,
+        "tags": [
+            "lgr#3#0#1#0"
+        ]
+    }
+]

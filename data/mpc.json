@@ -1,0 +1,12 @@
+[
+    {
+        "name": "mellant",
+        "display": "Cuisine",
+        "host": "mellant",
+        "port": 6600,
+        "password": "",
+        "tags": [
+            "lgr#3#0#1#0"
+        ]
+    }
+]

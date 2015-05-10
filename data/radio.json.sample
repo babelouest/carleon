@@ -1,0 +1,14 @@
+[
+    {
+        "name": "myradio",
+        "description": "Web Radio OGG (64 kb, mono)",
+        "url": "\/radio\/stream.ogg",
+        "type": "audio\/ogg",
+        "host": "localhost",
+        "port": "1201",
+        "requestName": "stream",
+        "control": true,
+        "tags": [
+        ]
+    }
+]
