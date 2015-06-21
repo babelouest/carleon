@@ -76,6 +76,6 @@ function updateCamera($camera, $configCameras, $storeFilePath) {
 
 // Return true if the camera has activated detection, false otherwise
 function isDetectionActive($camera) {
-	$statusPage = file_get_contents($camera['detection-status']['url']);
+	$statusPage = @file_get_contents($camera['detection-status']['url']);
 	return (strstr($statusPage, $camera['detection-status']['active-string']) != false);
 }
