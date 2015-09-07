@@ -46,7 +46,7 @@ if ($carleonApps['profiles']['enabled']) {
 			if ($_POST['action'] == 'addprofile') {
 				$newId = getLastId($jsonProfiles)+1;
 				$jsonProfiles[] = array('id' => (string)$newId, 'display' => $_POST['profile'], 'tabs' => array(), 'options' => new stdClass());
-				if (file_put_contents($storeFilePath, json_encode($jsonProfiles, JSON_PRETTY_PRINT))) {
+				if (saveJsonConfigFile($storeFilePath, $jsonProfiles)) {
 					printProfile($newId, $jsonProfiles, $storeFilePath);
 				} else {
 					print json_encode(array('result' => 'error', 'reason' => 'Error writing file'));
@@ -60,7 +60,7 @@ if ($carleonApps['profiles']['enabled']) {
 								if (isset($profile['default']) && $profile['default']) {
 									$newJsonProfiles = setDefaultProfile($profile, $jsonProfiles);
 									if ($newJsonProfiles) {
-										if (file_put_contents($storeFilePath, json_encode($newJsonProfiles, JSON_PRETTY_PRINT))) {
+										if (saveJsonConfigFile($storeFilePath, $newJsonProfiles)) {
 											printProfile($profile['id'], $newJsonProfiles, $storeFilePath);
 										} else {
 											print json_encode(array('result' => 'error', 'reason' => 'Error writing file'));
@@ -70,7 +70,7 @@ if ($carleonApps['profiles']['enabled']) {
 									}
 								} else {
 									$jsonProfiles[$i] = $profile;
-									if (file_put_contents($storeFilePath, json_encode($jsonProfiles, JSON_PRETTY_PRINT))) {
+									if (saveJsonConfigFile($storeFilePath, $jsonProfiles)) {
 										printProfile($profile['id'], $jsonProfiles, $storeFilePath);
 									} else {
 										print json_encode(array('result' => 'error', 'reason' => 'Error writing file'));
@@ -93,7 +93,7 @@ if ($carleonApps['profiles']['enabled']) {
 								print json_encode(array('result' => 'error', 'reason' => 'Can not remove default profile'));
 							} else {
 								array_splice($jsonProfiles, $i, 1);
-								if (file_put_contents($storeFilePath, json_encode($jsonProfiles, JSON_PRETTY_PRINT))) {
+								if (saveJsonConfigFile($storeFilePath, $jsonProfiles)) {
 									print json_encode(array('result' => 'ok'));
 								} else {
 									print json_encode(array('result' => 'error', 'reason' => 'Error writing file'));
@@ -138,7 +138,7 @@ function printDefaultProfile($jsonProfiles, $storeFilePath) {
   // If no default profile is found, create one
   $defaultProfile = array('id' => (string)getLastId($jsonProfiles)+1, 'display' => 'Default profile', 'default' => 1, 'tabs' => array(), 'options' => new stdClass());
   $jsonProfiles[] = $defaultProfile;
-  if (file_put_contents($storeFilePath, json_encode($jsonProfiles))) {
+  if (saveJsonConfigFile($storeFilePath, $jsonProfiles)) {
     print json_encode(array('result' => 'ok', 'profile' => $defaultProfile));
   } else {
     print json_encode(array('result' => 'error', 'reason' => 'Error writing file'));

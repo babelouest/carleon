@@ -44,7 +44,7 @@ if ($carleonApps['radio']['enabled']) {
 				if ($socket === false) {
 					echo json_encode(array('result' => 'error', 'message' => "socket_create() failed :  " . socket_strerror(socket_last_error()) . "\n"));
 				} else {
-					$stream				= $radio[$_GET['url']];
+					$stream					= $radio['url'];
 					$name					= $radio['name'];
 					$url					= $radio['url'];
 					$type					= $radio['type'];

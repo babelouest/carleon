@@ -138,7 +138,7 @@ function updateMpc($mpc, $configMpc, $storeFilePath) {
 	for ($i=0; $i < count($configMpc); $i++) {
 		if ($configMpc[$i]['name'] == $mpc['name']) {
 			$configMpc[$i] = $mpc;
-      return (file_put_contents($storeFilePath, json_encode($configMpc, JSON_PRETTY_PRINT)));
+      return (saveJsonConfigFile($storeFilePath, $configMpc));
 		}
 	}
 }

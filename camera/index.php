@@ -65,7 +65,7 @@ function updateCamera($camera, $configCameras, $storeFilePath) {
 	for ($i=0; $i < count($configCameras); $i++) {
 		if ($configCameras[$i]['name'] == $camera['name']) {
 			$configCameras[$i] = $camera;
-      if (file_put_contents($storeFilePath, json_encode($configCameras, JSON_PRETTY_PRINT))) {
+      if (saveJsonConfigFile($storeFilePath, $configCameras)) {
         print json_encode(array('result' => 'ok', 'camera' => $camera));
       } else {
         print json_encode(array('result' => 'error', 'reason' => 'Error writing file'));
