@@ -6,8 +6,6 @@
  * Licenced under AGPL
  */
 
-require_once '../config/config.php';
-
 $storeFilePath = "$carelonStorePath/mpc.json";
 
 $configMpc = json_decode(file_get_contents($storeFilePath), true);

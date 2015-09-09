@@ -5,7 +5,6 @@
  * Copyright 2015 Nicolas Mora mail@babelouest.org
  * Licenced under AGPL
  */
-require_once '../config/config.php';
 
 $storeFilePath = "$carelonStorePath/profiles.json";
 $cookieName = "carleon_profile";

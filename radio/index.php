@@ -6,6 +6,8 @@
  * Licenced under AGPL
  */
 
+require_once '../lib/carleon.php';
+require_once '../lib/config.php';
 require_once 'config.php';
 
 if ($carleonApps['radio']['enabled']) {

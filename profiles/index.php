@@ -5,6 +5,8 @@
  * Copyright 2015 Nicolas Mora mail@babelouest.org
  * Licenced under AGPL
  */
+require_once '../lib/carleon.php';
+require_once '../lib/config.php';
 require_once 'config.php';
 
 /* GET method, list profiles or groups */

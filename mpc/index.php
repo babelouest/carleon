@@ -7,6 +7,8 @@
  */
 
 require("./re-mpd.class.php");
+require_once '../lib/carleon.php';
+require_once '../lib/config.php';
 require("./config.php");
 
 if ($carleonApps['mpc']['enabled']) {
