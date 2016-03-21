@@ -1,0 +1,6 @@
+*.o
+service-modules/*.o
+service-modules/*.so
+carleon-standalone
+unit-tests
+carelon.conf
