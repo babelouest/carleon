@@ -287,3 +287,11 @@ int service_element_cleanup(struct _carleon_config * config, const char * servic
     return C_ERROR_MEMORY;
   }
 }
+
+json_t * service_exec(struct _carleon_config * config, struct _carleon_service * service, const char * command, const char * element, json_t * parameters) {
+  if (config != NULL && service != NULL && command != NULL) {
+    return service->c_service_exec(config, command, element, parameters);
+  } else {
+    return json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
+  }
+}

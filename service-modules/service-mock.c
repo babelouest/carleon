@@ -26,6 +26,14 @@
 #define RESULT_NOT_FOUND 2
 #define RESULT_TIMEOUT   3
 
+
+json_t * c_service_exec(struct _carleon_config * config, const char * command, const char * element, json_t * parameters) {
+  char * str_parameters = json_dumps(parameters, JSON_COMPACT);
+  y_log_message(Y_LOG_LEVEL_INFO, "mock-service - Executing command '%s' to element '%s' with parameters %s", command, element, str_parameters);
+  free(str_parameters);
+  return json_pack("{si}", "result", RESULT_OK);
+}
+
 json_t * mock_element_get(struct _carleon_config * config, const char * element_id) {
   json_t * j_query = json_object(), * j_result;
   int res;
@@ -133,12 +141,16 @@ int mock_element_delete(struct _carleon_config * config, const char * element_id
   }
 }
 
-json_t * c_service_exec(struct _carleon_config * config, json_t * command);
-
 int callback_mock_service_command (const struct _u_request * request, struct _u_response * response, void * user_data) {
-  json_t * command = json_pack("{ssss}", "command", "exec", "element", u_map_get(request->map_url, "element_id"));
-  response->json_body = c_service_exec((struct _carleon_config *)user_data, command);
-  json_decref(command);
+  int i_param2 = strtol(u_map_get(request->map_url, "param2"), NULL, 10);
+  float f_param3 = strtof(u_map_get(request->map_url, "param3"), NULL);
+  json_t * parameters = json_pack("{sssisf}", "param1", u_map_get(request->map_url, "param1"), i_param2, f_param3), * j_result;
+  
+  j_result = c_service_exec((struct _carleon_config *)user_data, "exec", u_map_get(request->map_url, "element_id"), parameters);
+  if (j_result == NULL || json_integer_value(json_object_get(j_result, "result")) != RESULT_OK) {
+    response->status = 500;
+  }
+  json_decref(parameters);
   return U_OK;
 }
 
@@ -194,7 +206,7 @@ json_t * c_service_init(struct _u_instance * instance, const char * url_prefix, 
     ulfius_add_endpoint_by_val(instance, "POST", url_prefix, "/mock-service/", NULL, NULL, NULL, &callback_mock_service, (void*)config);
     ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/mock-service/@element_id", NULL, NULL, NULL, &callback_mock_service, (void*)config);
     ulfius_add_endpoint_by_val(instance, "DELETE", url_prefix, "/mock-service/@element_id", NULL, NULL, NULL, &callback_mock_service, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/mock-service/@element_id/command/@command_name", NULL, NULL, NULL, &callback_mock_service_command, (void*)config);
+    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/mock-service/@element_id/command/@command_name/@param1/@param2/@param3", NULL, NULL, NULL, &callback_mock_service_command, (void*)config);
     
     return json_pack("{sissssss}", 
                       "result", RESULT_OK,
@@ -213,7 +225,7 @@ json_t * c_service_close(struct _u_instance * instance, const char * url_prefix)
     ulfius_remove_endpoint_by_val(instance, "POST", url_prefix, "/mock-service/");
     ulfius_remove_endpoint_by_val(instance, "PUT", url_prefix, "/mock-service/@element_id");
     ulfius_remove_endpoint_by_val(instance, "DELETE", url_prefix, "/mock-service/@element_id");
-    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/mock-service/@element_id/command/@command_name");
+    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/mock-service/@element_id/command/@command_name/@param1/@param2/@param3");
     
     return json_pack("{si}", "result", RESULT_OK);
   } else {
@@ -241,11 +253,4 @@ json_t * c_service_command_get_list(struct _carleon_config * config) {
 
 json_t * c_service_element_get_list(struct _carleon_config * config) {
   return mock_element_get(config, NULL);
-}
-
-json_t * c_service_exec(struct _carleon_config * config, json_t * command) {
-  char * str_command = json_dumps(command, JSON_COMPACT);
-  y_log_message(Y_LOG_LEVEL_INFO, "mock-service - Executing command: %s", str_command);
-  free(str_command);
-  return json_pack("{si}", "result", RESULT_OK);
 }

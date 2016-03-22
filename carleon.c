@@ -57,7 +57,7 @@ int close_carleon(struct _u_instance * instance, const char * url_prefix, struct
     ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/service/");
     ulfius_remove_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_uid/enable/@enable_value");
     ulfius_remove_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_uid/@element_id/cleanup");
-    ulfius_remove_endpoint_by_val(instance, "POST", url_prefix, "/service/@service_uid/@element_id/@tag");
+    ulfius_remove_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_uid/@element_id/@tag");
     ulfius_remove_endpoint_by_val(instance, "DELETE", url_prefix, "/service/@service_uid/@element_id/@tag");
 
     ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/profile");
@@ -237,6 +237,10 @@ int init_service_list(struct _u_instance * instance, const char * url_prefix, st
     }
     closedir(services_directory);
     
+    if (nb_service == 0) {
+        y_log_message(Y_LOG_LEVEL_WARNING, "No service found for carleon subsystem. If not needed, you can disable it");
+    }
+    
     // Connect all devices that are marked connected in the database
     service_list = service_get(config, NULL);
     if (service_list != NULL) {
@@ -286,7 +290,7 @@ void clean_carleon(struct _carleon_config * config) {
 int close_service_list(struct _carleon_config * config, struct _u_instance * instance, const char * url_prefix) {
   int i;
   
-  if (config == NULL || config->service_list == NULL) {
+  if (config == NULL) {
     return C_ERROR_PARAM;
   } else {
     for (i=0; config->service_list != NULL && config->service_list[i].uid != NULL; i++) {

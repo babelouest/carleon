@@ -82,7 +82,7 @@ struct _carleon_service {
   json_t * (* c_service_enable) (struct _carleon_config * config, int status);
   json_t * (* c_service_command_get_list) (struct _carleon_config * config);
   json_t * (* c_service_element_get_list) (struct _carleon_config * config);
-  json_t * (* c_service_exec) (struct _carleon_config * config, json_t * j_command);
+  json_t * (* c_service_exec) (struct _carleon_config * config, const char * command, const char * element, json_t * parameters);
 };
 
 // carleon core functions
@@ -101,7 +101,7 @@ int service_enable(struct _carleon_config * config, const char * service, const 
 struct _carleon_service * get_service_from_uid(struct _carleon_config * config, const char * uid);
 json_t * service_command_get_list(struct _carleon_service * service);
 json_t * service_element_get_list(struct _carleon_service * service);
-json_t * service_exec(struct _carleon_service * service, json_t * j_command);
+json_t * service_exec(struct _carleon_config * config, struct _carleon_service * service, const char * command, const char * element, json_t * parameters);
 
 // elements core functions
 json_t * service_element_get_tag(struct _carleon_config * config, const char * service, const char * element);

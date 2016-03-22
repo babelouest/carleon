@@ -28,7 +28,8 @@
 #include <ulfius.h>
 #include <orcania.h>
 
-#define SERVER_URL_PREFIX "http://localhost:2756/carleon"
+//#define SERVER_URL_PREFIX "http://localhost:2756/carleon"
+#define SERVER_URL_PREFIX "http://localhost:2473/carleon"
 
 /**
  * decode a u_map into a string
@@ -156,10 +157,10 @@ void run_service_tests() {
     {"GET", SERVER_URL_PREFIX "/mock-service/mock3", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 404
     {"PUT", SERVER_URL_PREFIX "/mock-service/mock2", NULL, NULL, NULL, NULL, NULL, NULL, NULL, mock_valid3, NULL, 0, NULL, 0}, // 200
     {"GET", SERVER_URL_PREFIX "/mock-service/mock2", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"POST", SERVER_URL_PREFIX "/service/00-00-00/mock1/tag1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"POST", SERVER_URL_PREFIX "/service/00-00-00/mock1/tag2", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"POST", SERVER_URL_PREFIX "/service/00-00-00/mock2/tag1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"POST", SERVER_URL_PREFIX "/service/00-00-00/mock2/tag1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
+    {"PUT", SERVER_URL_PREFIX "/service/00-00-00/mock1/tag1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
+    {"PUT", SERVER_URL_PREFIX "/service/00-00-00/mock1/tag2", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
+    {"PUT", SERVER_URL_PREFIX "/service/00-00-00/mock2/tag1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
+    {"PUT", SERVER_URL_PREFIX "/service/00-00-00/mock2/tag1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
     {"GET", SERVER_URL_PREFIX "/service/", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
     {"GET", SERVER_URL_PREFIX "/service/", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
     {"DELETE", SERVER_URL_PREFIX "/service/00-00-00/mock2/tag1", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
