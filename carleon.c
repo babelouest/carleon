@@ -118,10 +118,10 @@ int init_service_list(struct _u_instance * instance, const char * url_prefix, st
     }
     
     while ((in_file = readdir(services_directory))) {
-      if (!strcmp (in_file->d_name, ".")) {
+      if (!nstrcmp (in_file->d_name, ".")) {
         continue;
       }
-      if (!strcmp (in_file->d_name, "..")) {
+      if (!nstrcmp (in_file->d_name, "..")) {
         continue;
       }
       
@@ -275,7 +275,7 @@ struct _carleon_service * get_service_from_uid(struct _carleon_config * config, 
   }
   
   for (i=0; config->service_list[i].uid != NULL; i++) {
-    if (0 == strcmp(config->service_list[i].uid, uid)) {
+    if (0 == nstrcmp(config->service_list[i].uid, uid)) {
       return (config->service_list + i);
     }
   }
@@ -337,7 +337,7 @@ int callback_carleon_service_enable (const struct _u_request * request, struct _
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error, user_data is NULL");
     return U_ERROR_PARAMS;
   } else {
-    res = service_enable((struct _carleon_config *)user_data, u_map_get(request->map_url, "service_uid"), 0 == strcmp(u_map_get(request->map_url, "enable_value"), "1")?1:0);
+    res = service_enable((struct _carleon_config *)user_data, u_map_get(request->map_url, "service_uid"), 0 == nstrcmp(u_map_get(request->map_url, "enable_value"), "1")?1:0);
     if (res == C_OK) {
       return U_OK;
     } else if (res == C_ERROR_NOT_FOUND) {

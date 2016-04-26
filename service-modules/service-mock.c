@@ -31,7 +31,11 @@ json_t * c_service_exec(struct _carleon_config * config, const char * command, c
   char * str_parameters = json_dumps(parameters, JSON_COMPACT);
   y_log_message(Y_LOG_LEVEL_INFO, "mock-service - Executing command '%s' to element '%s' with parameters %s", command, element, str_parameters);
   free(str_parameters);
-  return json_pack("{si}", "result", RESULT_OK);
+  if (0 == nstrcmp(command, "exec")) {
+    return json_pack("{sisiso}", "result", RESULT_OK, "value", 1, "other_value", json_true());
+  } else {
+    return json_pack("{sisi}", "result", RESULT_OK, "value", 10);
+  }
 }
 
 json_t * mock_element_get(struct _carleon_config * config, const char * element_id) {
@@ -155,7 +159,7 @@ int callback_mock_service_command (const struct _u_request * request, struct _u_
 }
 
 int callback_mock_service (const struct _u_request * request, struct _u_response * response, void * user_data) {
-  if (0 == strcmp(request->http_verb, "GET")) {
+  if (0 == nstrcmp(request->http_verb, "GET")) {
     json_t * element = mock_element_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "element_id"));
     if (json_integer_value(json_object_get(element, "result")) == RESULT_ERROR) {
       response->status = 500;
@@ -165,7 +169,7 @@ int callback_mock_service (const struct _u_request * request, struct _u_response
       response->json_body = json_copy(json_object_get(element, "element"));
     }
     json_decref(element);
-  } else if (0 == strcmp(request->http_verb, "POST")) {
+  } else if (0 == nstrcmp(request->http_verb, "POST")) {
     if (json_object_get(request->json_body, "name") != NULL && json_is_string(json_object_get(request->json_body, "name")) && json_string_length(json_object_get(request->json_body, "name")) <= 64 &&
         json_object_get(request->json_body, "description") != NULL && json_is_string(json_object_get(request->json_body, "description")) && json_string_length(json_object_get(request->json_body, "description")) <= 128) {
       int res = mock_element_add((struct _carleon_config *)user_data, request->json_body);
@@ -175,7 +179,7 @@ int callback_mock_service (const struct _u_request * request, struct _u_response
     } else {
       response->status = 400;
     }
-  } else if (0 == strcmp(request->http_verb, "PUT")) {
+  } else if (0 == nstrcmp(request->http_verb, "PUT")) {
     json_t * element = mock_element_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "element_id"));
     if (element == NULL) {
       response->status = 404;
@@ -187,7 +191,7 @@ int callback_mock_service (const struct _u_request * request, struct _u_response
       response->status = 400;
     }
     json_decref(element);
-  } else if (0 == strcmp(request->http_verb, "DELETE")) {
+  } else if (0 == nstrcmp(request->http_verb, "DELETE")) {
     json_t * element = mock_element_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "element_id"));
     if (element == NULL) {
       response->status = 404;
@@ -237,18 +241,25 @@ json_t * c_service_enable(struct _carleon_config * config, int status) {
   return json_pack("{si}", "result", RESULT_OK);
 }
 
+/**
+ * 2 commands
+ */
 json_t * c_service_command_get_list(struct _carleon_config * config) {
-  return json_pack("{sis{s{s{s{ssso}s{ssso}s{ss}}}}}", 
+  return json_pack("{sis{s{s{s{ssso}s{ssso}s{ss}}}s{s{s{ssso}}}}}", 
                     "result", RESULT_OK, 
                     "commands", 
-                        "exec", 
-                            "parameters", 
-                                "param1", 
-                                    "type", "string", "required", json_true(), 
-                                "param2", 
-                                    "type", "integer", "required", json_false(), 
-                                "param3", 
-                                    "type", "real");
+                      "exec", 
+                        "parameters", 
+                          "param1", 
+                            "type", "string", "required", json_true(), 
+                          "param2", 
+                            "type", "integer", "required", json_false(), 
+                          "param3", 
+                            "type", "real",
+                      "exec2",
+                        "parameters",
+                          "param1",
+                            "type", "string", "required", json_true());
 }
 
 json_t * c_service_element_get_list(struct _carleon_config * config) {

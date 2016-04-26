@@ -99,8 +99,6 @@ json_t * service_get(struct _carleon_config * config, const char * service);
 json_t * parse_service_from_db(json_t * service);
 int service_enable(struct _carleon_config * config, const char * service, const int status);
 struct _carleon_service * get_service_from_uid(struct _carleon_config * config, const char * uid);
-json_t * service_command_get_list(struct _carleon_service * service);
-json_t * service_element_get_list(struct _carleon_service * service);
 json_t * service_exec(struct _carleon_config * config, struct _carleon_service * service, const char * command, const char * element, json_t * parameters);
 
 // elements core functions
