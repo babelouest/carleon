@@ -22,6 +22,7 @@
 #
 
 PREFIX=/usr/local
+MODULES_TARGET=$(PREFIX)/lib/angharad/carleon
 CC=gcc
 CFLAGS=-c -fPIC -Wall -D_REENTRANT -shared -nostartfiles -I$(PREFIX)/include $(ADDITIONALFLAGS)
 LIBS=-L$(PREFIX)/lib -lc -ljansson -lyder -lorcania -lulfius
@@ -45,3 +46,7 @@ debug: libservicemock.so
 release: ADDITIONALFLAGS=-O3
 
 release: libservicemock.so
+
+install: libservicemock.so
+	mkdir -p $(MODULES_TARGET)
+	cp -f libservicemock.so $(MODULES_TARGET)
