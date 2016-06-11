@@ -148,7 +148,7 @@ int mock_element_delete(struct _carleon_config * config, const char * element_id
 int callback_mock_service_command (const struct _u_request * request, struct _u_response * response, void * user_data) {
   int i_param2 = strtol(u_map_get(request->map_url, "param2"), NULL, 10);
   float f_param3 = strtof(u_map_get(request->map_url, "param3"), NULL);
-  json_t * parameters = json_pack("{sssisf}", "param1", u_map_get(request->map_url, "param1"), i_param2, f_param3), * j_result;
+  json_t * parameters = json_pack("{sssisf}", "param1", u_map_get(request->map_url, "param1"), "param2", i_param2, "param3", f_param3), * j_result;
   
   j_result = c_service_exec((struct _carleon_config *)user_data, "exec", u_map_get(request->map_url, "element_id"), parameters);
   if (j_result == NULL || json_integer_value(json_object_get(j_result, "result")) != RESULT_OK) {
