@@ -52,7 +52,11 @@ json_t * profile_list(struct _carleon_config * config) {
       return json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
     }
     json_array_foreach(j_result, index, profile) {
-      json_array_append_new(to_return, json_copy(json_object_get(profile, "cp_name")));
+	  json_t * j_profile = profile_get(config, json_string_value(json_object_get(profile, "cp_name")));
+	  if (j_profile != NULL && json_integer_value(json_object_get(j_profile, "result")) == WEBSERVICE_RESULT_OK) {
+		json_array_append_new(to_return, json_copy(json_object_get(j_profile, "profile")));
+      }
+      json_decref(j_profile);
     }
     json_decref(j_result);
     return json_pack("{siso}", "result", WEBSERVICE_RESULT_OK, "list", to_return);
