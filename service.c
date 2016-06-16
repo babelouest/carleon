@@ -192,12 +192,12 @@ int service_element_add_tag(struct _carleon_config * config, const char * servic
                             "values",
                               "cs_uid", service,
                               "ce_name", element,
-                              "ce_tag", tags);
+                              "ce_tag", str_tags);
       } else {
         j_query = json_pack("{sss{ss}s{ssss}}", 
                             "table", CARLEON_TABLE_ELEMENT, 
                             "set",
-                              "ce_tag", tags,
+                              "ce_tag", str_tags,
                             "where", 
                               "cs_uid", service, 
                               "ce_name", element);
