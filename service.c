@@ -72,7 +72,7 @@ json_t * service_get(struct _carleon_config * config, const char * uid) {
             
             json_array_foreach(elt_list, index, elt) {
               if (json_object_get(elt, "name") != NULL && json_is_string(json_object_get(elt, "name"))) {
-                json_object_set_new(elt, "tag", service_element_get_tag(config, json_string_value(json_object_get(service, "uid")), json_string_value(json_object_get(elt, "name"))));
+                json_object_set_new(elt, "tags", service_element_get_tag(config, json_string_value(json_object_get(service, "uid")), json_string_value(json_object_get(elt, "name"))));
               }
             }
             json_object_set_new(service, "element", elt_list);
@@ -115,14 +115,14 @@ int service_enable(struct _carleon_config * config, const char * uid, const int 
   json_t * j_service = service_get(config, uid), * j_query;
   int res;
   
+  if (j_service == NULL) {
+    y_log_message(Y_LOG_LEVEL_ERROR, "service_enable - service %s not found", uid);
+    return C_ERROR_NOT_FOUND;
+  }
+  
   if (config == NULL || uid == NULL || (status != 0 && status != 1)) {
     y_log_message(Y_LOG_LEVEL_ERROR, "service_enable - Error input parameters");
     return C_ERROR_PARAM;
-  }
-  
-  if (uid == NULL) {
-    y_log_message(Y_LOG_LEVEL_ERROR, "service_enable - service %s not found", uid);
-    return C_ERROR_NOT_FOUND;
   }
   
   json_decref(j_service);
@@ -176,10 +176,16 @@ int service_element_add_tag(struct _carleon_config * config, const char * servic
                                 "where", 
                                   "cs_uid", service, 
                                   "ce_name", element),
-         * j_result;
+         * j_result,
+         * j_service = service_get(config, service);
   int res;
   
-  if (j_query != NULL) {
+  if (j_service == NULL) {
+	 json_decref(tags);
+	 json_decref(j_query);
+	 return C_ERROR_NOT_FOUND;
+  } else if (j_query != NULL) {
+	json_decref(j_service);
     res = h_select(config->conn, j_query, &j_result, NULL);
     json_decref(j_query);
     if (res == H_OK) {
@@ -232,9 +238,16 @@ int service_element_add_tag(struct _carleon_config * config, const char * servic
 }
 
 int service_element_remove_tag(struct _carleon_config * config, const char * service, const char * element, const char * tag) {
-  json_t * tags = service_element_get_tag(config, service, element), * j_query = NULL;
+  json_t * tags = service_element_get_tag(config, service, element), * j_query = NULL, * j_service = service_get(config, service);
   int index, res;
   char * str_tag;
+  
+  if (j_service == NULL) {
+	json_decref(tags);
+	return C_ERROR_NOT_FOUND;
+  }
+  
+  json_decref(j_service);
   
   for (index = json_array_size(tags)-1; index >= 0; index--) {
     if (0 == nstrcmp(json_string_value(json_array_get(tags, index)), tag)) {
