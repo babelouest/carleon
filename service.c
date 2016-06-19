@@ -62,7 +62,9 @@ json_t * service_get(struct _carleon_config * config, const char * uid) {
         if (c_service != NULL) {
           json_t * tmp = c_service->c_service_command_get_list(config);
           if (json_integer_value(json_object_get(tmp, "result")) == WEBSERVICE_RESULT_OK) {
-            json_object_set_new(service, "command", json_copy(json_object_get(tmp, "command")));
+            json_object_set_new(service, "commands", json_copy(json_object_get(tmp, "commands")));
+          } else {
+            json_object_set_new(service, "commands", json_array());
           }
           json_decref(tmp);
           tmp = c_service->c_service_element_get_list(config);
@@ -181,11 +183,11 @@ int service_element_add_tag(struct _carleon_config * config, const char * servic
   int res;
   
   if (j_service == NULL) {
-	 json_decref(tags);
-	 json_decref(j_query);
-	 return C_ERROR_NOT_FOUND;
+    json_decref(tags);
+    json_decref(j_query);
+    return C_ERROR_NOT_FOUND;
   } else if (j_query != NULL) {
-	json_decref(j_service);
+    json_decref(j_service);
     res = h_select(config->conn, j_query, &j_result, NULL);
     json_decref(j_query);
     if (res == H_OK) {
@@ -243,8 +245,8 @@ int service_element_remove_tag(struct _carleon_config * config, const char * ser
   char * str_tag;
   
   if (j_service == NULL) {
-	json_decref(tags);
-	return C_ERROR_NOT_FOUND;
+    json_decref(tags);
+    Ssreturn C_ERROR_NOT_FOUND;
   }
   
   json_decref(j_service);
