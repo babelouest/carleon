@@ -248,7 +248,7 @@ json_t * c_service_command_get_list(struct _carleon_config * config) {
   return json_pack("{sis{s{s{s{ssso}s{ssso}s{ss}}}s{s{s{ssso}}}}}", 
                     "result", RESULT_OK, 
                     "commands", 
-                      "exec", 
+                      "exec1", 
                         "parameters", 
                           "param1", 
                             "type", "string", "required", json_true(), 

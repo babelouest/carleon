@@ -246,7 +246,7 @@ int service_element_remove_tag(struct _carleon_config * config, const char * ser
   
   if (j_service == NULL) {
     json_decref(tags);
-    Ssreturn C_ERROR_NOT_FOUND;
+    return C_ERROR_NOT_FOUND;
   }
   
   json_decref(j_service);
