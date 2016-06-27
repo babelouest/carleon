@@ -70,10 +70,9 @@ struct _carleon_config {
  * contains the handle to the library and handles for all the functions
  */
 struct _carleon_service {
-  char   * uid;
+  char   * name;
   void   * dl_handle;
   int      enabled;
-  char   * name;
   char   * description;
   
   // dl files functions available
@@ -98,7 +97,7 @@ int disconnect_all_services(struct _carleon_config * config);
 json_t * service_get(struct _carleon_config * config, const char * service);
 json_t * parse_service_from_db(json_t * service);
 int service_enable(struct _carleon_config * config, const char * service, const int status);
-struct _carleon_service * get_service_from_uid(struct _carleon_config * config, const char * uid);
+struct _carleon_service * get_service_from_name(struct _carleon_config * config, const char * name);
 json_t * service_exec(struct _carleon_config * config, struct _carleon_service * service, const char * command, const char * element, json_t * parameters);
 
 // elements core functions

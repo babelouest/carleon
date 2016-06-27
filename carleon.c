@@ -29,10 +29,10 @@ int init_carleon(struct _u_instance * instance, const char * url_prefix, struct 
   if (instance != NULL && url_prefix != NULL && config != NULL) {
     
     ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/service/", NULL, NULL, NULL, &callback_carleon_service_get, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_uid/enable/@enable_value", NULL, NULL, NULL, &callback_carleon_service_enable, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_uid/@element_id/cleanup", NULL, NULL, NULL, &callback_carleon_service_element_cleanup, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_uid/@element_id/@tag", NULL, NULL, NULL, &callback_carleon_service_element_add_tag, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "DELETE", url_prefix, "/service/@service_uid/@element_id/@tag", NULL, NULL, NULL, &callback_carleon_service_element_remove_tag, (void*)config);
+    ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_name/enable/@enable_value", NULL, NULL, NULL, &callback_carleon_service_enable, (void*)config);
+    ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_name/@element_id/cleanup", NULL, NULL, NULL, &callback_carleon_service_element_cleanup, (void*)config);
+    ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_name/@element_id/@tag", NULL, NULL, NULL, &callback_carleon_service_element_add_tag, (void*)config);
+    ulfius_add_endpoint_by_val(instance, "DELETE", url_prefix, "/service/@service_name/@element_id/@tag", NULL, NULL, NULL, &callback_carleon_service_element_remove_tag, (void*)config);
 
     ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/profile", NULL, NULL, NULL, &callback_carleon_profile_list, (void*)config);
     ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/profile/@profile_id", NULL, NULL, NULL, &callback_carleon_profile_get, (void*)config);
@@ -55,10 +55,10 @@ int init_carleon(struct _u_instance * instance, const char * url_prefix, struct 
 int close_carleon(struct _u_instance * instance, const char * url_prefix, struct _carleon_config * config) {
   if (instance != NULL) {
     ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/service/");
-    ulfius_remove_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_uid/enable/@enable_value");
-    ulfius_remove_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_uid/@element_id/cleanup");
-    ulfius_remove_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_uid/@element_id/@tag");
-    ulfius_remove_endpoint_by_val(instance, "DELETE", url_prefix, "/service/@service_uid/@element_id/@tag");
+    ulfius_remove_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_name/enable/@enable_value");
+    ulfius_remove_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_name/@element_id/cleanup");
+    ulfius_remove_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_name/@element_id/@tag");
+    ulfius_remove_endpoint_by_val(instance, "DELETE", url_prefix, "/service/@service_name/@element_id/@tag");
 
     ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/profile");
     ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/profile/@profile_id");
@@ -90,7 +90,6 @@ int init_service_list(struct _u_instance * instance, const char * url_prefix, st
   config->service_list = malloc(sizeof(struct _carleon_service));
   
   if (config->conn != NULL && config->services_path != NULL && config->service_list != NULL) {
-    config->service_list->uid = NULL;
     config->service_list->dl_handle = NULL;
     config->service_list->enabled = 0;
     config->service_list->name = NULL;
@@ -150,13 +149,12 @@ int init_service_list(struct _u_instance * instance, const char * url_prefix, st
             (cur_service.c_service_command_get_list != NULL) && (cur_service.c_service_element_get_list != NULL) && (cur_service.c_service_exec)) {
           y_log_message(Y_LOG_LEVEL_INFO, "Adding service from file %s", file_path);
           service_handshake = (*cur_service.c_service_init)(instance, url_prefix, config);
-          cur_service.uid = nstrdup(json_string_value(json_object_get(service_handshake, "uid")));
           cur_service.name = nstrdup(json_string_value(json_object_get(service_handshake, "name")));
           cur_service.description = nstrdup(json_string_value(json_object_get(service_handshake, "description")));
           json_decref(service_handshake);
           service_handshake = NULL;
           
-          if (cur_service.uid != NULL && cur_service.name != NULL && cur_service.description != NULL) {
+          if (cur_service.name != NULL && cur_service.description != NULL) {
             nb_service++;
             config->service_list = realloc(config->service_list, (nb_service+1)*sizeof(struct _carleon_service));
             if (config->service_list == NULL) {
@@ -164,7 +162,6 @@ int init_service_list(struct _u_instance * instance, const char * url_prefix, st
               close_service_list(config, instance, url_prefix);
               return C_ERROR_MEMORY;
             }
-            config->service_list[nb_service - 1].uid = cur_service.uid;
             config->service_list[nb_service - 1].name = cur_service.name;
             config->service_list[nb_service - 1].description = cur_service.description;
             
@@ -176,7 +173,6 @@ int init_service_list(struct _u_instance * instance, const char * url_prefix, st
             config->service_list[nb_service - 1].c_service_element_get_list = cur_service.c_service_element_get_list;
             config->service_list[nb_service - 1].c_service_exec = cur_service.c_service_exec;
 
-            config->service_list[nb_service].uid = NULL;
             config->service_list[nb_service].name = NULL;
             config->service_list[nb_service].description = NULL;
             config->service_list[nb_service].dl_handle = NULL;
@@ -188,7 +184,7 @@ int init_service_list(struct _u_instance * instance, const char * url_prefix, st
               return C_ERROR_DB;
             }
             json_object_set_new(j_query, "table", json_string(CARLEON_TABLE_SERVICE));
-            json_object_set_new(j_query, "where", json_pack("{ss}", "cs_uid", cur_service.uid));
+            json_object_set_new(j_query, "where", json_pack("{ss}", "cs_name", cur_service.name));
             res = h_select(config->conn, j_query, &j_result, NULL);
             json_decref(j_query);
             if (res != H_OK) {
@@ -202,8 +198,7 @@ int init_service_list(struct _u_instance * instance, const char * url_prefix, st
               json_object_set_new(j_query, "table", json_string(CARLEON_TABLE_SERVICE));
               if (json_array_size(j_result) == 0) {
                 // Insert new device_type
-                json_object_set_new(j_query, "values", json_pack("{sssssssi}", 
-                                                        "cs_uid", cur_service.uid, 
+                json_object_set_new(j_query, "values", json_pack("{sssssi}", 
                                                         "cs_name", cur_service.name, 
                                                         "cs_description", cur_service.description, 
                                                         "cs_enabled", 1
@@ -211,12 +206,11 @@ int init_service_list(struct _u_instance * instance, const char * url_prefix, st
                 res = h_insert(config->conn, j_query, NULL);
               } else {
                 // Update existing device type
-                json_object_set_new(j_query, "set", json_pack("{sssssi}", 
-                                                              "cs_name", cur_service.name, 
+                json_object_set_new(j_query, "set", json_pack("{sssi}", 
                                                               "cs_description", cur_service.description, 
                                                               "cs_enabled", 1
                                                             ));
-                json_object_set_new(j_query, "where", json_pack("{ss}", "cs_uid", cur_service.uid));
+                json_object_set_new(j_query, "where", json_pack("{ss}", "cs_name", cur_service.name));
                 res = h_update(config->conn, j_query, NULL);
               }
               json_decref(j_query);
@@ -246,7 +240,7 @@ int init_service_list(struct _u_instance * instance, const char * url_prefix, st
     if (service_list != NULL) {
       json_array_foreach(service_list, index, service) {
         if (json_object_get(service, "connected") == json_true()) {
-          int res = service_enable(config, json_string_value(json_object_get(service, "uid")), 1);
+          int res = service_enable(config, json_string_value(json_object_get(service, "name")), 1);
           if (res == C_OK) {
             y_log_message(Y_LOG_LEVEL_INFO, "Service %s connected", json_string_value(json_object_get(service, "name")));
           } else {
@@ -266,16 +260,16 @@ int init_service_list(struct _u_instance * instance, const char * url_prefix, st
   }
 }
 
-struct _carleon_service * get_service_from_uid(struct _carleon_config * config, const char * uid) {
+struct _carleon_service * get_service_from_name(struct _carleon_config * config, const char * name) {
   int i;
   
-  if (config == NULL || uid == NULL) {
-    y_log_message(Y_LOG_LEVEL_ERROR, "get_service_from_uid - Error input parameters");
+  if (config == NULL || name == NULL) {
+    y_log_message(Y_LOG_LEVEL_ERROR, "get_service_from_name - Error input parameters");
     return NULL;
   }
   
-  for (i=0; config->service_list[i].uid != NULL; i++) {
-    if (0 == nstrcmp(config->service_list[i].uid, uid)) {
+  for (i=0; config->service_list[i].name != NULL; i++) {
+    if (0 == nstrcmp(config->service_list[i].name, name)) {
       return (config->service_list + i);
     }
   }
@@ -293,7 +287,7 @@ int close_service_list(struct _carleon_config * config, struct _u_instance * ins
   if (config == NULL) {
     return C_ERROR_PARAM;
   } else {
-    for (i=0; config->service_list != NULL && config->service_list[i].uid != NULL; i++) {
+    for (i=0; config->service_list != NULL && config->service_list[i].name != NULL; i++) {
       close_service((config->service_list + i), instance, url_prefix);
     }
     free(config->service_list);
@@ -311,7 +305,6 @@ void close_service(struct _carleon_service * service, struct _u_instance * insta
   json_decref(j_result);
   
   dlclose(service->dl_handle);
-  free(service->uid);
   free(service->name);
   free(service->description);
 }
@@ -337,7 +330,7 @@ int callback_carleon_service_enable (const struct _u_request * request, struct _
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error, user_data is NULL");
     return U_ERROR_PARAMS;
   } else {
-    res = service_enable((struct _carleon_config *)user_data, u_map_get(request->map_url, "service_uid"), 0 == nstrcmp(u_map_get(request->map_url, "enable_value"), "1")?1:0);
+    res = service_enable((struct _carleon_config *)user_data, u_map_get(request->map_url, "service_name"), 0 == nstrcmp(u_map_get(request->map_url, "enable_value"), "1")?1:0);
     if (res == C_OK) {
       return U_OK;
     } else if (res == C_ERROR_NOT_FOUND) {
@@ -358,7 +351,7 @@ int callback_carleon_service_element_add_tag (const struct _u_request * request,
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_element_add_tag - Error, user_data is NULL");
     return U_ERROR_PARAMS;
   } else {
-    res = service_element_add_tag((struct _carleon_config *)user_data, u_map_get(request->map_url, "service_uid"), u_map_get(request->map_url, "element_id"), u_map_get(request->map_url, "tag"));
+    res = service_element_add_tag((struct _carleon_config *)user_data, u_map_get(request->map_url, "service_name"), u_map_get(request->map_url, "element_id"), u_map_get(request->map_url, "tag"));
     if (res == C_OK) {
       return U_OK;
     } else if (res == C_ERROR_NOT_FOUND) {
@@ -379,7 +372,7 @@ int callback_carleon_service_element_remove_tag (const struct _u_request * reque
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_element_remove_tag - Error, user_data is NULL");
     return U_ERROR_PARAMS;
   } else {
-    res = service_element_remove_tag((struct _carleon_config *)user_data, u_map_get(request->map_url, "service_uid"), u_map_get(request->map_url, "element_id"), u_map_get(request->map_url, "tag"));
+    res = service_element_remove_tag((struct _carleon_config *)user_data, u_map_get(request->map_url, "service_name"), u_map_get(request->map_url, "element_id"), u_map_get(request->map_url, "tag"));
     if (res == C_OK) {
       return U_OK;
     } else if (res == C_ERROR_NOT_FOUND) {
@@ -400,7 +393,7 @@ int callback_carleon_service_element_cleanup (const struct _u_request * request,
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_element_cleanup - Error, user_data is NULL");
     return U_ERROR_PARAMS;
   } else {
-    res = service_element_cleanup((struct _carleon_config *)user_data, u_map_get(request->map_url, "service_uid"), u_map_get(request->map_url, "element_id"));
+    res = service_element_cleanup((struct _carleon_config *)user_data, u_map_get(request->map_url, "service_name"), u_map_get(request->map_url, "element_id"));
     if (res == C_OK) {
       return U_OK;
     } else if (res == C_ERROR_NOT_FOUND) {

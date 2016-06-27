@@ -9,17 +9,16 @@ DROP TABLE IF EXISTS `c_element`;
 DROP TABLE IF EXISTS `c_service`;
 
 CREATE TABLE `c_service` (
-  `cs_uid` varchar(64) PRIMARY KEY NOT NULL,
+  `cs_name` varchar(64) PRIMARY KEY,
   `cs_enabled` tinyint(1) DEFAULT 0,
-  `cs_name` varchar(64) NOT NULL UNIQUE,
   `cs_description` varchar(512)
 );
 
 CREATE TABLE `c_element` (
-  `cs_uid` varchar(64),
+  `cs_name` varchar(64),
   `ce_name` varchar(64),
   `ce_tag` blob,
-  CONSTRAINT `service_ibfk_1` FOREIGN KEY (`cs_uid`) REFERENCES `c_service` (`cs_uid`)
+  CONSTRAINT `service_ibfk_1` FOREIGN KEY (`cs_name`) REFERENCES `c_service` (`cs_name`)
 );
 
 CREATE TABLE `c_profile` (

@@ -212,9 +212,8 @@ json_t * c_service_init(struct _u_instance * instance, const char * url_prefix, 
     ulfius_add_endpoint_by_val(instance, "DELETE", url_prefix, "/mock-service/@element_id", NULL, NULL, NULL, &callback_mock_service, (void*)config);
     ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/mock-service/@element_id/command/@command_name/@param1/@param2/@param3", NULL, NULL, NULL, &callback_mock_service_command, (void*)config);
     
-    return json_pack("{sissssss}", 
+    return json_pack("{sissss}", 
                       "result", RESULT_OK,
-                      "uid", "00-00-00",
                       "name", "mock-service",
                       "description", "Mock service for Carleon development");
   } else {
