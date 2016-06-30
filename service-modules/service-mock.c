@@ -26,15 +26,23 @@
 #define RESULT_NOT_FOUND 2
 #define RESULT_TIMEOUT   3
 
-
+/**
+ * The returned value is used by events conditions
+ * 
+ * The c_service_exec must return a json_t * object of the following format:
+ * {
+ *    "result": numeric (one of the RESULT_* values)
+ *    "value": any value relevant for the use (string, numeric, object, etc.)
+ * }
+ */
 json_t * c_service_exec(struct _carleon_config * config, const char * command, const char * element, json_t * parameters) {
   char * str_parameters = json_dumps(parameters, JSON_COMPACT);
   y_log_message(Y_LOG_LEVEL_INFO, "mock-service - Executing command '%s' to element '%s' with parameters %s", command, element, str_parameters);
   free(str_parameters);
-  if (0 == nstrcmp(command, "exec")) {
-    return json_pack("{sisiso}", "result", RESULT_OK, "value", 1, "other_value", json_true());
+  if (0 == nstrcmp(command, "exec1")) {
+    return json_pack("{sis{siso}}", "result", RESULT_OK, "value", "value1", 1, "value2", json_true());
   } else {
-    return json_pack("{sisi}", "result", RESULT_OK, "value", 10);
+    return json_pack("{siss}", "result", RESULT_OK, "value", "ok");
   }
 }
 
@@ -146,14 +154,23 @@ int mock_element_delete(struct _carleon_config * config, const char * element_id
 }
 
 int callback_mock_service_command (const struct _u_request * request, struct _u_response * response, void * user_data) {
-  int i_param2 = strtol(u_map_get(request->map_url, "param2"), NULL, 10);
-  float f_param3 = strtof(u_map_get(request->map_url, "param3"), NULL);
-  json_t * parameters = json_pack("{sssisf}", "param1", u_map_get(request->map_url, "param1"), "param2", i_param2, "param3", f_param3), * j_result;
+  int i_param2;
+  float f_param3;
+  json_t * parameters, * j_result;
   
-  j_result = c_service_exec((struct _carleon_config *)user_data, "exec", u_map_get(request->map_url, "element_id"), parameters);
+  if (nstrcmp(u_map_get(request->map_url, "command_name"), "exec1") == 0 && u_map_has_key(request->map_url, "param2") && u_map_has_key(request->map_url, "param3")) {
+    i_param2 = strtol(u_map_get(request->map_url, "param2"), NULL, 10);
+    f_param3 = strtof(u_map_get(request->map_url, "param3"), NULL);
+    parameters = json_pack("{sssisf}", "param1", u_map_get(request->map_url, "param1"), "param2", i_param2, "param3", f_param3);
+  } else {
+    parameters = json_pack("{ss}", "param1", u_map_get(request->map_url, "param1"));
+  }
+  
+  j_result = c_service_exec((struct _carleon_config *)user_data, u_map_get(request->map_url, "command_name"), u_map_get(request->map_url, "element_id"), parameters);
   if (j_result == NULL || json_integer_value(json_object_get(j_result, "result")) != RESULT_OK) {
     response->status = 500;
   }
+  response->json_body = j_result;
   json_decref(parameters);
   return U_OK;
 }
@@ -211,6 +228,7 @@ json_t * c_service_init(struct _u_instance * instance, const char * url_prefix, 
     ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/mock-service/@element_id", NULL, NULL, NULL, &callback_mock_service, (void*)config);
     ulfius_add_endpoint_by_val(instance, "DELETE", url_prefix, "/mock-service/@element_id", NULL, NULL, NULL, &callback_mock_service, (void*)config);
     ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/mock-service/@element_id/command/@command_name/@param1/@param2/@param3", NULL, NULL, NULL, &callback_mock_service_command, (void*)config);
+    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/mock-service/@element_id/command/@command_name/@param1/", NULL, NULL, NULL, &callback_mock_service_command, (void*)config);
     
     return json_pack("{sissss}", 
                       "result", RESULT_OK,
@@ -244,21 +262,28 @@ json_t * c_service_enable(struct _carleon_config * config, int status) {
  * 2 commands
  */
 json_t * c_service_command_get_list(struct _carleon_config * config) {
-  return json_pack("{sis{s{s{s{ssso}s{ssso}s{ss}}}s{s{s{ssso}}}}}", 
-                    "result", RESULT_OK, 
-                    "commands", 
-                      "exec1", 
-                        "parameters", 
-                          "param1", 
-                            "type", "string", "required", json_true(), 
-                          "param2", 
-                            "type", "integer", "required", json_false(), 
-                          "param3", 
+  return json_pack("{sis{s{s{s{ssso}s{ssso}s{ss}}s{s{ss}s{ss}}}s{s{s{ssso}}s{ss}}}}",
+                    "result", RESULT_OK,
+                    "commands",
+                      "exec1",
+                        "parameters",
+                          "param1",
+                            "type", "string", "required", json_true(),
+                          "param2",
+                            "type", "integer", "required", json_false(),
+                          "param3",
                             "type", "real",
+                        "result",
+                          "value1",
+                            "type", "integer",
+                          "value2",
+                            "type", "boolean",
                       "exec2",
                         "parameters",
                           "param1",
-                            "type", "string", "required", json_true());
+                            "type", "string", "required", json_true(),
+                        "result",
+                          "type", "string");
 }
 
 json_t * c_service_element_get_list(struct _carleon_config * config) {
