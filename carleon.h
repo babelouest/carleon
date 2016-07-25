@@ -63,6 +63,7 @@ struct _carleon_config {
   char                    * services_path;
   struct _h_connection    * conn;
   struct _carleon_service * service_list;
+  char                    * alert_url;
 };
 
 /**
