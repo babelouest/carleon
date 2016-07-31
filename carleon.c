@@ -140,13 +140,12 @@ int init_service_list(struct _u_instance * instance, const char * url_prefix, st
         cur_service.dl_handle = file_handle;
         *(void **) (&cur_service.c_service_init) = dlsym(cur_service.dl_handle, "c_service_init");
         *(void **) (&cur_service.c_service_close) = dlsym(cur_service.dl_handle, "c_service_close");
-        *(void **) (&cur_service.c_service_enable) = dlsym(cur_service.dl_handle, "c_service_enable");
         *(void **) (&cur_service.c_service_command_get_list) = dlsym(cur_service.dl_handle, "c_service_command_get_list");
         *(void **) (&cur_service.c_service_element_get_list) = dlsym(cur_service.dl_handle, "c_service_element_get_list");
         *(void **) (&cur_service.c_service_exec) = dlsym(cur_service.dl_handle, "c_service_exec");
         
-        if ((cur_service.c_service_init != NULL) && (cur_service.c_service_close != NULL) && (cur_service.c_service_enable != NULL) && 
-            (cur_service.c_service_command_get_list != NULL) && (cur_service.c_service_element_get_list != NULL) && (cur_service.c_service_exec)) {
+        if ((cur_service.c_service_init != NULL) && (cur_service.c_service_close != NULL) && (cur_service.c_service_command_get_list != NULL) && 
+            (cur_service.c_service_element_get_list != NULL) && (cur_service.c_service_exec != NULL)) {
           y_log_message(Y_LOG_LEVEL_INFO, "Adding service from file %s", file_path);
           service_handshake = (*cur_service.c_service_init)(instance, url_prefix, config);
           cur_service.name = nstrdup(json_string_value(json_object_get(service_handshake, "name")));
@@ -168,7 +167,6 @@ int init_service_list(struct _u_instance * instance, const char * url_prefix, st
             config->service_list[nb_service - 1].dl_handle = cur_service.dl_handle;
             config->service_list[nb_service - 1].c_service_init = cur_service.c_service_init;
             config->service_list[nb_service - 1].c_service_close = cur_service.c_service_close;
-            config->service_list[nb_service - 1].c_service_enable = cur_service.c_service_enable;
             config->service_list[nb_service - 1].c_service_command_get_list = cur_service.c_service_command_get_list;
             config->service_list[nb_service - 1].c_service_element_get_list = cur_service.c_service_element_get_list;
             config->service_list[nb_service - 1].c_service_exec = cur_service.c_service_exec;
@@ -226,6 +224,8 @@ int init_service_list(struct _u_instance * instance, const char * url_prefix, st
         } else {
           y_log_message(Y_LOG_LEVEL_ERROR, "init_service_list - Error getting all function handles for module %s: ", file_path);
         }
+      } else {
+        y_log_message(Y_LOG_LEVEL_ERROR, "Error opening carleon module file %s, reason: %s", file_path, dlerror());
       }
       free(file_path);
     }
