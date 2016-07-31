@@ -260,10 +260,6 @@ json_t * c_service_close(struct _u_instance * instance, const char * url_prefix)
   }
 }
 
-json_t * c_service_enable(struct _carleon_config * config, int status) {
-  return json_pack("{si}", "result", RESULT_OK);
-}
-
 /**
  * 4 commands
  */
