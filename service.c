@@ -61,7 +61,7 @@ json_t * service_get(struct _carleon_config * config, const char * name) {
         struct _carleon_service * c_service = get_service_from_name(config, json_string_value(json_object_get(service, "name")));
         if (c_service != NULL) {
           json_t * tmp = c_service->c_service_command_get_list(config);
-          if (json_integer_value(json_object_get(tmp, "result")) == WEBSERVICE_RESULT_OK) {
+          if (json_integer_value(json_object_get(tmp, "result")) == WEBSERVICE_RESULT_OK && json_is_array(json_object_get(tmp, "commands"))) {
             json_object_set_new(service, "commands", json_copy(json_object_get(tmp, "commands")));
           } else {
             json_object_set_new(service, "commands", json_array());
@@ -77,7 +77,11 @@ json_t * service_get(struct _carleon_config * config, const char * name) {
                 json_object_set_new(elt, "tags", service_element_get_tag(config, json_string_value(json_object_get(service, "name")), json_string_value(json_object_get(elt, "name"))));
               }
             }
-            json_object_set_new(service, "element", elt_list);
+            if (elt_list != NULL && json_is_array(elt_list)) {
+              json_object_set_new(service, "element", elt_list);
+            } else {
+              json_object_set_new(service, "element", json_array());
+            }
           }
           json_decref(tmp);
         } else {
