@@ -40,7 +40,7 @@
 #define _HOEL_SQLITE
 #include <hoel.h>
 
-#define _CARLEON_VERSION 0.1
+#define _CARLEON_VERSION 0.9
 
 #define C_OK              0
 #define C_ERROR           1
@@ -54,6 +54,7 @@
 #define WEBSERVICE_RESULT_OK        1
 #define WEBSERVICE_RESULT_NOT_FOUND 2
 #define WEBSERVICE_RESULT_TIMEOUT   3
+#define WEBSERVICE_RESULT_PARAM     4
 
 #define CARLEON_TABLE_SERVICE "c_service"
 #define CARLEON_TABLE_ELEMENT "c_element"
@@ -79,7 +80,6 @@ struct _carleon_service {
   // dl files functions available
   json_t * (* c_service_init) (struct _u_instance * instance, const char * url_prefix, struct _carleon_config * config);
   json_t * (* c_service_close) (struct _u_instance * instance, const char * url_prefix);
-  json_t * (* c_service_enable) (struct _carleon_config * config, int status);
   json_t * (* c_service_command_get_list) (struct _carleon_config * config);
   json_t * (* c_service_element_get_list) (struct _carleon_config * config);
   json_t * (* c_service_exec) (struct _carleon_config * config, const char * command, const char * element, json_t * parameters);
