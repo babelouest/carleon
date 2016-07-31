@@ -33,20 +33,29 @@ all: release
 libservicemock.so: service-mock.o
 	$(CC) -shared -Wl,-soname,libservicemock.so -o libservicemock.so service-mock.o $(LIBS)
 
-device-mock.o: service-mock.c
+service-mock.o: service-mock.c
 	$(CC) $(CFLAGS) $(FLAGS_YDER) service-mock.c
 
+libservicemotion.so: service-motion.o
+	$(CC) -shared -Wl,-soname,libservicemotion.so -o libservicemotion.so service-motion.o $(LIBS) `pkg-config --libs MagickCore` -lpthread
+
+service-motion.o: service-motion.c
+	$(CC) `pkg-config --cflags MagickCore` $(CFLAGS) $(FLAGS_YDER) service-motion.c
+
 clean:
-	rm -f *.o *.so
+	rm -f *.o *.so unit-tests
 
 debug: ADDITIONALFLAGS=-DDEBUG -g -O0
 
-debug: libservicemock.so
+debug: libservicemock.so libservicemotion.so
 
 release: ADDITIONALFLAGS=-O3
 
-release: libservicemock.so
+release: libservicemock.so libservicemotion.so
 
-install: libservicemock.so
+install: libservicemock.so libservicemotion.so
 	mkdir -p $(MODULES_TARGET)
-	cp -f libservicemock.so $(MODULES_TARGET)
+	cp -f libservicemock.so libservicemotion.so $(MODULES_TARGET)
+
+unit-tests: unit-tests.c
+	$(CC) -o unit-tests unit-tests.c -lc -lulfius -lorcania -ljansson -L$(PREFIX)/lib
