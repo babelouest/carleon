@@ -4,13 +4,12 @@
  *
  * Command house automation side services via an HTTP REST interface
  *
- * Mock service module
- * Provides all the commands for a fake service
- * Used to develop and validate carleon infrastructure above
+ * Motion service module
+ * Used to show images taken and real-time stream of a motion application
  *
  * Copyright 2016 Nicolas Mora <mail@babelouest.org>
  *
- * Licence MIT
+ * Licence GPL V3
  *
  */
 
@@ -30,9 +29,16 @@
 #define RESULT_TIMEOUT   3
 #define RESULT_PARAM     4
 
+/**
+ * Some declarations
+ */
 json_t * service_motion_get(struct _carleon_config * config, const char * service_name);
 int has_service_motion(struct _carleon_config * config, const char * service_name);
 
+/**
+ * Return a json array containing errors in the service_motion parameter
+ * r an empty array if no error
+ */
 json_t * is_service_motion_valid(struct _carleon_config * config, json_t * service_motion, int add) {
   json_t * to_return = json_array(), * element;
   size_t index;
@@ -109,6 +115,9 @@ json_t * is_service_motion_valid(struct _carleon_config * config, json_t * servi
   return to_return;
 }
 
+/**
+ * Add a new motion service
+ */
 json_t * service_motion_add(struct _carleon_config * config, json_t * service_motion) {
   json_t * j_reasons, * j_query, * element;
   int res;
@@ -186,6 +195,9 @@ json_t * service_motion_add(struct _carleon_config * config, json_t * service_mo
   }
 }
 
+/**
+ * Update an existing motion service
+ */
 json_t * service_motion_set(struct _carleon_config * config, const char * name, json_t * service_motion) {
   json_t * j_reasons, * j_query, * element;
   int res;
@@ -288,6 +300,9 @@ json_t * service_motion_set(struct _carleon_config * config, const char * name, 
   }
 }
 
+/**
+ * Return the file lists of the motion service specified
+ */
 json_t * service_motion_get_file_list(struct _carleon_config * config, const char * service_name) {
   json_t * j_query = json_pack("{sss[sss]s{ss}}", 
                                 "table", 
@@ -311,6 +326,9 @@ json_t * service_motion_get_file_list(struct _carleon_config * config, const cha
   }
 }
 
+/**
+ * Return the stream lists of the motion service specified
+ */
 json_t * service_motion_get_stream_list(struct _carleon_config * config, const char * service_name) {
   json_t * j_query = json_pack("{sss[sss]s{ss}}", 
                                 "table", 
@@ -334,6 +352,9 @@ json_t * service_motion_get_stream_list(struct _carleon_config * config, const c
   }
 }
 
+/**
+ * return true if the specified motion service exists
+ */
 int has_service_motion(struct _carleon_config * config, const char * service_name) {
   json_t * j_query = json_pack("{sss{ss}}",
                                 "table",
@@ -356,6 +377,9 @@ int has_service_motion(struct _carleon_config * config, const char * service_nam
   }
 }
 
+/**
+ * Remove the specified motion service
+ */
 json_t * service_motion_remove(struct _carleon_config * config, const char * service_name) {
   json_t * j_query_stream = json_pack("{sss{ss}}",
                                 "table",
@@ -391,6 +415,9 @@ json_t * service_motion_remove(struct _carleon_config * config, const char * ser
   }
 }
 
+/**
+ * get the specified motion service if name is not NULL, otherwise get all motion services
+ */
 json_t * service_motion_get(struct _carleon_config * config, const char * name) {
   json_t * j_query = json_pack("{ss}", "table", "c_service_motion");
   json_t * j_result, * j_service, * j_return, * j_cur_service, * j_file_list, * j_stream_list, * to_return;
@@ -470,6 +497,9 @@ json_t * service_motion_get(struct _carleon_config * config, const char * name) 
   }
 }
 
+/**
+ * Callback function to get all motion services or one motion service
+ */
 int callback_service_motion_get (const struct _u_request * request, struct _u_response * response, void * user_data) {
   json_t * j_service_motion;
   
@@ -491,6 +521,9 @@ int callback_service_motion_get (const struct _u_request * request, struct _u_re
   return U_OK;
 }
 
+/**
+ * Callback function to add a motion service
+ */
 int callback_service_motion_add (const struct _u_request * request, struct _u_response * response, void * user_data) {
   json_t * result;
   if (user_data == NULL) {
@@ -510,6 +543,9 @@ int callback_service_motion_add (const struct _u_request * request, struct _u_re
   return U_OK;
 }
 
+/**
+ * Callback function to modify a motion service
+ */
 int callback_service_motion_set (const struct _u_request * request, struct _u_response * response, void * user_data) {
   json_t * result;
   if (user_data == NULL) {
@@ -531,6 +567,9 @@ int callback_service_motion_set (const struct _u_request * request, struct _u_re
   return U_OK;
 }
 
+/**
+ * Callback function to remove a motion service
+ */
 int callback_service_motion_remove (const struct _u_request * request, struct _u_response * response, void * user_data) {
   json_t * result;
   if (user_data == NULL) {
@@ -561,6 +600,9 @@ const char * get_filename_ext(const char *path) {
     return dot;
 }
 
+/**
+ * Return a list of available files from the specified path
+ */
 json_t * get_available_files(const char * path, uint count, uint offset) {
 	DIR *dir;
 	struct dirent *ent;
@@ -591,6 +633,9 @@ json_t * get_available_files(const char * path, uint count, uint offset) {
 	return to_return;
 }
 
+/**
+ * Return 1 if the specified motion service is detected online, else 0
+ */
 int is_motion_online(struct _carleon_config * config, json_t * service_motion) {
   struct _u_request c_request;
   int to_return = 1;
@@ -667,25 +712,33 @@ int callback_service_motion_status (const struct _u_request * request, struct _u
   return U_OK;
 }
 
+/**
+ * Return a file content
+ */
 void * get_file(const char * full_path, size_t * len) {
 	void * buffer = NULL;
 	FILE * f;
 	
-	f = fopen (full_path, "rb");
-	*len = 0;
-	if (f) {
-		fseek (f, 0, SEEK_END);
-		*len = ftell (f);
-		fseek (f, 0, SEEK_SET);
-		buffer = malloc(*len*sizeof(void));
-		if (buffer) {
-			fread (buffer, 1, *len, f);
+	if (full_path != NULL && len != NULL) {
+		f = fopen (full_path, "rb");
+		*len = 0;
+		if (f) {
+			fseek (f, 0, SEEK_END);
+			*len = ftell (f);
+			fseek (f, 0, SEEK_SET);
+			buffer = malloc(*len*sizeof(void));
+			if (buffer) {
+				fread (buffer, 1, *len, f);
+			}
+			fclose (f);
 		}
-		fclose (f);
 	}
 	return buffer;
 }
 
+/**
+ * Return an tumbnail of the specified image
+ */
 void * get_thumbnail(const char * full_path, const char * thumbnail_path, size_t * len) {
   void * blob = NULL;
   ExceptionInfo
@@ -741,6 +794,9 @@ void * get_thumbnail(const char * full_path, const char * thumbnail_path, size_t
   return blob;
 }
 
+/**
+ * Callback function to get an image from a motion service
+ */
 int callback_service_motion_image (const struct _u_request * request, struct _u_response * response, void * user_data) {
   json_t * service_motion = service_motion_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "name"));
 	json_t * file_list = NULL, * element;
@@ -795,6 +851,11 @@ int callback_service_motion_image (const struct _u_request * request, struct _u_
   return U_OK;
 }
 
+/**
+ * Buffer structure used as a data cache
+ * between the http request to the camera stream, 
+ * and the http response to the client
+ */
 struct stream_buffer {
 	uint close;
 	pthread_mutex_t lock;
@@ -803,6 +864,9 @@ struct stream_buffer {
 	void * data;
 };
 
+/**
+ * get stream data from the camera stream, and add it at the end of the buffer
+ */
 size_t write_distant_body(void * contents, size_t size, size_t nmemb, void * user_data) {
 	struct stream_buffer * buffer = (struct stream_buffer *)user_data;
 	size_t res = size * nmemb;
@@ -835,6 +899,9 @@ size_t write_distant_body(void * contents, size_t size, size_t nmemb, void * use
 	return res;
 }
 
+/**
+ * send stream data from the buffer to the client
+ */
 ssize_t stream_data (void * cls, uint64_t pos, char * buf, size_t max) {
 	struct stream_buffer * buffer = (struct stream_buffer *)cls;
 	ssize_t res;
@@ -883,6 +950,9 @@ ssize_t stream_data (void * cls, uint64_t pos, char * buf, size_t max) {
 	return res;
 }
 
+/**
+ * Free the stream_buffer at the end of a connexion
+ */
 void free_stream_data(void * cls) {
 	struct stream_buffer * buffer = (struct stream_buffer *)cls;
 	
@@ -896,6 +966,9 @@ void free_stream_data(void * cls) {
 	}
 }
 
+/**
+ * Run the http request to the camera stream in a distinct thread
+ */
 void * thread_stream_run(void * args) {
 	struct stream_buffer * buffer = (struct stream_buffer *)args;
 	int res;
@@ -922,6 +995,9 @@ void * thread_stream_run(void * args) {
 	return NULL;
 }
 
+/**
+ * Callback function used to proxify the stream from the camera to the client
+ */
 int callback_service_motion_stream (const struct _u_request * request, struct _u_response * response, void * user_data) {
 	json_t * service_motion = service_motion_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "name")), * element, * stream = NULL;
 	size_t index;
@@ -980,6 +1056,9 @@ int callback_service_motion_stream (const struct _u_request * request, struct _u
   return U_OK;
 }
 
+/**
+ * Send a snapshot command to the specified camera stream
+ */
 int send_snapshot_command(struct _carleon_config * config, const char * element_name, const char * stream_name) {
 	json_t * service_motion = service_motion_get(config, element_name), * stream = NULL, * element;
   struct _u_request c_request;
@@ -1012,6 +1091,9 @@ int send_snapshot_command(struct _carleon_config * config, const char * element_
 	return to_return;
 }
 
+/**
+ * callback function used to send a snapshot command to the specified stream
+ */
 int callback_service_motion_snapshot (const struct _u_request * request, struct _u_response * response, void * user_data) {
 	int res;
 	
@@ -1030,6 +1112,9 @@ int callback_service_motion_snapshot (const struct _u_request * request, struct 
 	return U_OK;
 }
 
+/**
+ * Initialize the motion service
+ */
 json_t * c_service_init(struct _u_instance * instance, const char * url_prefix, struct _carleon_config * config) {
   if (instance != NULL && url_prefix != NULL && config != NULL) {
     ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/service-motion/", NULL, NULL, NULL, &callback_service_motion_get, (void*)config);
@@ -1053,6 +1138,9 @@ json_t * c_service_init(struct _u_instance * instance, const char * url_prefix, 
   }
 }
 
+/**
+ * Closes the motion service
+ */
 json_t * c_service_close(struct _u_instance * instance, const char * url_prefix) {
   if (instance != NULL && url_prefix != NULL) {
     ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/service-motion/");
@@ -1075,7 +1163,7 @@ json_t * c_service_close(struct _u_instance * instance, const char * url_prefix)
 }
 
 /**
- * 3 commands
+ * send the available commands
  */
 json_t * c_service_command_get_list(struct _carleon_config * config) {
   return json_pack("{sis{s{s{ss}}s{s{s{ssso}}s{ss}}}}",
@@ -1092,10 +1180,16 @@ json_t * c_service_command_get_list(struct _carleon_config * config) {
                             "type", "boolean");
 }
 
+/**
+ * Get the list of available elements
+ */
 json_t * c_service_element_get_list(struct _carleon_config * config) {
   return service_motion_get(config, NULL);
 }
 
+/**
+ * Execute a command
+ */
 json_t * c_service_exec(struct _carleon_config * config, const char * command, const char * element, json_t * parameters) {
 	json_t * service_motion, * result = NULL;
 
