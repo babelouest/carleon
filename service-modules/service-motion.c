@@ -23,12 +23,6 @@
 #include <magick/MagickCore.h>
 #include "../carleon.h"
 
-#define RESULT_ERROR     0
-#define RESULT_OK        1
-#define RESULT_NOT_FOUND 2
-#define RESULT_TIMEOUT   3
-#define RESULT_PARAM     4
-
 /**
  * Some declarations
  */
@@ -124,9 +118,9 @@ json_t * service_motion_add(struct _carleon_config * config, json_t * service_mo
   size_t index;
   
   if (config == NULL) {
-    return json_pack("{si}", "result", RESULT_ERROR);
+    return json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
   } else if (service_motion == NULL) {
-    return json_pack("{siss}", "result", RESULT_PARAM, "reason", "no service_motion specified");
+    return json_pack("{siss}", "result", WEBSERVICE_RESULT_PARAM, "reason", "no service_motion specified");
   } else {
     j_reasons = is_service_motion_valid(config, service_motion, 1);
     if (j_reasons == NULL || json_array_size(j_reasons) == 0) {
@@ -184,13 +178,13 @@ json_t * service_motion_add(struct _carleon_config * config, json_t * service_mo
           }
         }
         
-        return json_pack("{si}", "result", RESULT_OK);
+        return json_pack("{si}", "result", WEBSERVICE_RESULT_OK);
       } else {
         y_log_message(Y_LOG_LEVEL_ERROR, "service_motion_add - Error adding in table c_service_motion");
-        return json_pack("{si}", "result", RESULT_ERROR);
+        return json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
       }
     } else {
-      return json_pack("{siso}", "result", RESULT_PARAM, "reason", j_reasons);
+      return json_pack("{siso}", "result", WEBSERVICE_RESULT_PARAM, "reason", j_reasons);
     }
   }
 }
@@ -204,9 +198,9 @@ json_t * service_motion_set(struct _carleon_config * config, const char * name, 
   size_t index;
   
   if (config == NULL) {
-    return json_pack("{si}", "result", RESULT_ERROR);
+    return json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
   } else if (service_motion == NULL) {
-    return json_pack("{siss}", "result", RESULT_PARAM, "reason", "no service_motion specified");
+    return json_pack("{siss}", "result", WEBSERVICE_RESULT_PARAM, "reason", "no service_motion specified");
   } else {
     j_reasons = is_service_motion_valid(config, service_motion, 0);
     if (j_reasons == NULL || json_array_size(j_reasons) == 0) {
@@ -289,13 +283,13 @@ json_t * service_motion_set(struct _carleon_config * config, const char * name, 
           y_log_message(Y_LOG_LEVEL_ERROR, "service_motion_set - Error removing old c_service_motion_stream elements");
         }
         
-        return json_pack("{si}", "result", RESULT_OK);
+        return json_pack("{si}", "result", WEBSERVICE_RESULT_OK);
       } else {
         y_log_message(Y_LOG_LEVEL_ERROR, "service_motion_set - Error setting in table c_service_motion");
-        return json_pack("{si}", "result", RESULT_ERROR);
+        return json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
       }
     } else {
-      return json_pack("{siso}", "result", RESULT_PARAM, "reason", j_reasons);
+      return json_pack("{siso}", "result", WEBSERVICE_RESULT_PARAM, "reason", j_reasons);
     }
   }
 }
@@ -320,9 +314,9 @@ json_t * service_motion_get_file_list(struct _carleon_config * config, const cha
   res = h_select(config->conn, j_query, &j_result, NULL);
   json_decref(j_query);
   if (res == H_OK) {
-    return json_pack("{siso}", "result", RESULT_OK, "file_list", j_result);
+    return json_pack("{siso}", "result", WEBSERVICE_RESULT_OK, "file_list", j_result);
   } else {
-    return json_pack("{si}", "result", RESULT_ERROR);
+    return json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
   }
 }
 
@@ -346,9 +340,9 @@ json_t * service_motion_get_stream_list(struct _carleon_config * config, const c
   res = h_select(config->conn, j_query, &j_result, NULL);
   json_decref(j_query);
   if (res == H_OK) {
-    return json_pack("{siso}", "result", RESULT_OK, "stream_list", j_result);
+    return json_pack("{siso}", "result", WEBSERVICE_RESULT_OK, "stream_list", j_result);
   } else {
-    return json_pack("{si}", "result", RESULT_ERROR);
+    return json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
   }
 }
 
@@ -408,10 +402,10 @@ json_t * service_motion_remove(struct _carleon_config * config, const char * ser
   json_decref(j_query_file_list);
   json_decref(j_query_stream);
   if (res == H_OK && res_file_list == H_OK && res_stream == H_OK) {
-    return json_pack("{si}", "result", RESULT_OK);
+    return json_pack("{si}", "result", WEBSERVICE_RESULT_OK);
   } else {
     y_log_message(Y_LOG_LEVEL_ERROR, "has_service_motion - Error executing j_queries");
-    return json_pack("{si}", "result", RESULT_ERROR);
+    return json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
   }
 }
 
@@ -433,15 +427,15 @@ json_t * service_motion_get(struct _carleon_config * config, const char * name) 
   if (res == H_OK) {
     if (name != NULL) {
       if (json_array_size(j_result) == 0) {
-        to_return = json_pack("{si}", "result", RESULT_NOT_FOUND);
+        to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_NOT_FOUND);
       } else {
         j_return = json_object();
         if (j_return != NULL) {
           j_service = json_array_get(j_result, 0);
           j_file_list = service_motion_get_file_list(config, json_string_value(json_object_get(j_service, "csm_name")));
           j_stream_list = service_motion_get_stream_list(config, json_string_value(json_object_get(j_service, "csm_name")));
-          if (j_file_list != NULL && json_integer_value(json_object_get(j_file_list, "result")) == RESULT_OK &&
-              j_stream_list != NULL && json_integer_value(json_object_get(j_stream_list, "result")) == RESULT_OK) {
+          if (j_file_list != NULL && json_integer_value(json_object_get(j_file_list, "result")) == WEBSERVICE_RESULT_OK &&
+              j_stream_list != NULL && json_integer_value(json_object_get(j_stream_list, "result")) == WEBSERVICE_RESULT_OK) {
             json_object_set_new(j_return, "name", json_copy(json_object_get(j_service, "csm_name")));
             json_object_set_new(j_return, "description", json_copy(json_object_get(j_service, "csm_description")));
             json_object_set_new(j_return, "config_uri", json_copy(json_object_get(j_service, "csm_config_uri")));
@@ -452,10 +446,10 @@ json_t * service_motion_get(struct _carleon_config * config, const char * name) 
           }
           json_decref(j_file_list);
           json_decref(j_stream_list);
-          to_return = json_pack("{siso}", "result", RESULT_OK, "element", j_return);
+          to_return = json_pack("{siso}", "result", WEBSERVICE_RESULT_OK, "element", j_return);
         } else {
           y_log_message(Y_LOG_LEVEL_ERROR, "get_service_motion_list - Error allocating resources for j_return");
-          to_return = json_pack("{si}", "result", RESULT_ERROR);
+          to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
         }
       }
     } else {
@@ -464,8 +458,8 @@ json_t * service_motion_get(struct _carleon_config * config, const char * name) 
         json_array_foreach(j_result, index, j_service) {
           j_file_list = service_motion_get_file_list(config, json_string_value(json_object_get(j_service, "csm_name")));
           j_stream_list = service_motion_get_stream_list(config, json_string_value(json_object_get(j_service, "csm_name")));
-          if (j_file_list != NULL && json_integer_value(json_object_get(j_file_list, "result")) == RESULT_OK &&
-              j_stream_list != NULL && json_integer_value(json_object_get(j_stream_list, "result")) == RESULT_OK) {
+          if (j_file_list != NULL && json_integer_value(json_object_get(j_file_list, "result")) == WEBSERVICE_RESULT_OK &&
+              j_stream_list != NULL && json_integer_value(json_object_get(j_stream_list, "result")) == WEBSERVICE_RESULT_OK) {
             j_cur_service = json_object();
             if (j_cur_service != NULL) {
               json_object_set_new(j_cur_service, "name", json_copy(json_object_get(j_service, "csm_name")));
@@ -483,17 +477,17 @@ json_t * service_motion_get(struct _carleon_config * config, const char * name) 
           json_decref(j_file_list);
           json_decref(j_stream_list);
         }
-        to_return = json_pack("{siso}", "result", RESULT_OK, "element", j_return);
+        to_return = json_pack("{siso}", "result", WEBSERVICE_RESULT_OK, "element", j_return);
       } else {
         y_log_message(Y_LOG_LEVEL_ERROR, "get_service_motion_list - Error allocating resources for j_return");
-        to_return = json_pack("{si}", "result", RESULT_ERROR);
+        to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
       }
     }
     json_decref(j_result);
     return to_return;
   } else {
     y_log_message(Y_LOG_LEVEL_ERROR, "get_service_motion_list - Error executing j_query");
-    return json_pack("{si}", "result", RESULT_ERROR);
+    return json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
   }
 }
 
@@ -508,9 +502,9 @@ int callback_service_motion_get (const struct _u_request * request, struct _u_re
     return U_ERROR_PARAMS;
   } else {
     j_service_motion = service_motion_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "name"));
-    if (j_service_motion != NULL && json_integer_value(json_object_get(j_service_motion, "result")) == RESULT_OK) {
+    if (j_service_motion != NULL && json_integer_value(json_object_get(j_service_motion, "result")) == WEBSERVICE_RESULT_OK) {
       response->json_body = json_copy(json_object_get(j_service_motion, "element"));
-    } else if (j_service_motion != NULL && json_integer_value(json_object_get(j_service_motion, "result")) == RESULT_NOT_FOUND) {
+    } else if (j_service_motion != NULL && json_integer_value(json_object_get(j_service_motion, "result")) == WEBSERVICE_RESULT_NOT_FOUND) {
       response->status = 404;
     } else {
       y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_motion_get - Error get_service_motion_list");
@@ -534,7 +528,7 @@ int callback_service_motion_add (const struct _u_request * request, struct _u_re
     if (result == NULL) {
       y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_motion_add - Error in service_motion_add");
       response->status = 500;
-    } else if (json_integer_value(json_object_get(result, "result")) == RESULT_PARAM) {
+    } else if (json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_PARAM) {
       response->json_body = json_copy(json_object_get(result, "reason"));
       response->status = 400;
     }
@@ -555,10 +549,10 @@ int callback_service_motion_set (const struct _u_request * request, struct _u_re
     response->status = 404;
   } else {
     result = service_motion_set((struct _carleon_config *)user_data, u_map_get(request->map_url, "name"), request->json_body);
-    if (result == NULL || json_integer_value(json_object_get(result, "result")) == RESULT_ERROR) {
+    if (result == NULL || json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_ERROR) {
       y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_motion_add - Error in service_motion_set");
       response->status = 500;
-    } else if (json_integer_value(json_object_get(result, "result")) == RESULT_PARAM) {
+    } else if (json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_PARAM) {
       response->json_body = json_copy(json_object_get(result, "reason"));
       response->status = 400;
     }
@@ -579,10 +573,10 @@ int callback_service_motion_remove (const struct _u_request * request, struct _u
     response->status = 404;
   } else {
     result = service_motion_remove((struct _carleon_config *)user_data, u_map_get(request->map_url, "name"));
-    if (result == NULL || json_integer_value(json_object_get(result, "result")) == RESULT_ERROR) {
+    if (result == NULL || json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_ERROR) {
       y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_motion_remove - Error in service_motion_set");
       response->status = 500;
-    } else if (json_integer_value(json_object_get(result, "result")) == RESULT_PARAM) {
+    } else if (json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_PARAM) {
       response->json_body = json_copy(json_object_get(result, "reason"));
       response->status = 400;
     }
@@ -626,9 +620,9 @@ json_t * get_available_files(const char * path, uint count, uint offset) {
 			index++;
 		}
 		closedir (dir);
-		to_return = json_pack("{siso}", "result", RESULT_OK, "list", list);
+		to_return = json_pack("{siso}", "result", WEBSERVICE_RESULT_OK, "list", list);
 	} else {
-		to_return = json_pack("{si}", "result", RESULT_ERROR);
+		to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
 	}
 	return to_return;
 }
@@ -661,7 +655,7 @@ int callback_service_motion_status (const struct _u_request * request, struct _u
   int res, count = 20, offset = 0;
   size_t index;
   
-  if (service_motion != NULL && json_integer_value(json_object_get(service_motion, "result")) == RESULT_OK) {
+  if (service_motion != NULL && json_integer_value(json_object_get(service_motion, "result")) == WEBSERVICE_RESULT_OK) {
 		to_return = json_object();
 		if (to_return != NULL) {
 			// Get online status
@@ -688,7 +682,7 @@ int callback_service_motion_status (const struct _u_request * request, struct _u
 			json_object_set_new(to_return, "file_list", json_object());
 			json_array_foreach(json_object_get(json_object_get(service_motion, "element"), "file_list"), index, list_object) {
 				list = get_available_files(json_string_value(json_object_get(list_object, "path")), count, offset);
-				if (list != NULL && json_integer_value(json_object_get(list, "result")) == RESULT_OK) {
+				if (list != NULL && json_integer_value(json_object_get(list, "result")) == WEBSERVICE_RESULT_OK) {
 					json_object_set_new(json_object_get(to_return, "file_list"), json_string_value(json_object_get(list_object, "name")), json_copy(json_object_get(list, "list")));
 				} else {
 					json_object_set_new(json_object_get(to_return, "file_list"), json_string_value(json_object_get(list_object, "name")), json_array());
@@ -703,7 +697,7 @@ int callback_service_motion_status (const struct _u_request * request, struct _u
 			y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_motion_status - Error allocating resources for to_return");
 			response->status = 500;
 		}
-	} else if (service_motion != NULL && json_integer_value(json_object_get(service_motion, "result")) == RESULT_NOT_FOUND) {
+	} else if (service_motion != NULL && json_integer_value(json_object_get(service_motion, "result")) == WEBSERVICE_RESULT_NOT_FOUND) {
 		response->status = 404;
 	} else {
 		response->status = 500;
@@ -803,7 +797,7 @@ int callback_service_motion_image (const struct _u_request * request, struct _u_
 	char * full_path, * thumbnail_path;
 	size_t index;
 	
-  if (service_motion != NULL && json_integer_value(json_object_get(service_motion, "result")) == RESULT_OK) {
+  if (service_motion != NULL && json_integer_value(json_object_get(service_motion, "result")) == WEBSERVICE_RESULT_OK) {
 		json_array_foreach(json_object_get(json_object_get(service_motion, "element"), "file_list"), index, element) {
 			if (0 == strcmp(json_string_value(json_object_get(element, "name")), u_map_get(request->map_url, "file_list"))) {
 				file_list = element;
@@ -842,7 +836,7 @@ int callback_service_motion_image (const struct _u_request * request, struct _u_
 		} else {
 			response->status = 404;
 		}
-	} else if (service_motion != NULL && json_integer_value(json_object_get(service_motion, "result")) == RESULT_NOT_FOUND) {
+	} else if (service_motion != NULL && json_integer_value(json_object_get(service_motion, "result")) == WEBSERVICE_RESULT_NOT_FOUND) {
 		response->status = 404;
 	} else {
 		response->status = 500;
@@ -1006,7 +1000,7 @@ int callback_service_motion_stream (const struct _u_request * request, struct _u
 	int thread_stream_ret = 0, thread_stream_detach = 0;
 	pthread_mutexattr_t mutexattr;
 	
-  if (service_motion != NULL && json_integer_value(json_object_get(service_motion, "result")) == RESULT_OK) {
+  if (service_motion != NULL && json_integer_value(json_object_get(service_motion, "result")) == WEBSERVICE_RESULT_OK) {
 		// Get online status
 		json_array_foreach(json_object_get(json_object_get(service_motion, "element"), "stream_list"), index, element) {
 			if (0 == strcmp(json_string_value(json_object_get(element, "name")), u_map_get(request->map_url, "stream_name"))) {
@@ -1065,7 +1059,7 @@ int send_snapshot_command(struct _carleon_config * config, const char * element_
   int res, to_return;
   size_t index;
   
-  if (service_motion != NULL && json_integer_value(json_object_get(service_motion, "result")) == RESULT_OK) {
+  if (service_motion != NULL && json_integer_value(json_object_get(service_motion, "result")) == WEBSERVICE_RESULT_OK) {
 		json_array_foreach(json_object_get(json_object_get(service_motion, "element"), "stream_list"), index, element) {
 			if (0 == strcmp(json_string_value(json_object_get(element, "name")), stream_name)) {
 				stream = element;
@@ -1076,16 +1070,16 @@ int send_snapshot_command(struct _carleon_config * config, const char * element_
 			c_request.http_url = nstrdup(json_string_value(json_object_get(stream, "snapshot_uri")));
 			res = ulfius_send_http_request(&c_request, NULL);
 			if (res != U_OK) {
-				to_return = RESULT_ERROR;
+				to_return = WEBSERVICE_RESULT_ERROR;
 			} else {
-				to_return = RESULT_OK;
+				to_return = WEBSERVICE_RESULT_OK;
 			}
 			ulfius_clean_request(&c_request);
 		} else {
-			to_return = RESULT_NOT_FOUND;
+			to_return = WEBSERVICE_RESULT_NOT_FOUND;
 		}
 	} else {
-		to_return = RESULT_NOT_FOUND;
+		to_return = WEBSERVICE_RESULT_NOT_FOUND;
 	}
 	json_decref(service_motion);
 	return to_return;
@@ -1103,9 +1097,9 @@ int callback_service_motion_snapshot (const struct _u_request * request, struct 
 	} else {
 		res = send_snapshot_command((struct _carleon_config *)user_data, u_map_get(request->map_url, "name"), u_map_get(request->map_url, "stream_name"));
 		
-		if (res == RESULT_NOT_FOUND) {
+		if (res == WEBSERVICE_RESULT_NOT_FOUND) {
 			response->status = 404;
-		} else if (res == RESULT_ERROR) {
+		} else if (res == WEBSERVICE_RESULT_ERROR) {
 			response->status = 500;
 		}
 	}
@@ -1129,12 +1123,12 @@ json_t * c_service_init(struct _u_instance * instance, const char * url_prefix, 
     ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/service-motion/@name/stream/@stream_name/snapshot", NULL, NULL, NULL, &callback_service_motion_snapshot, (void*)config);
 
     return json_pack("{sissss}", 
-                      "result", RESULT_OK,
+                      "result", WEBSERVICE_RESULT_OK,
                       "name", "service-motion",
                       "description", "Motion service for camera management");
 		MagickCoreGenesis("service-motion", MagickTrue);
   } else {
-    return json_pack("{si}", "result", RESULT_ERROR);
+    return json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
   }
 }
 
@@ -1156,9 +1150,9 @@ json_t * c_service_close(struct _u_instance * instance, const char * url_prefix)
 
 		MagickCoreTerminus();
 		
-    return json_pack("{si}", "result", RESULT_OK);
+    return json_pack("{si}", "result", WEBSERVICE_RESULT_OK);
   } else {
-    return json_pack("{si}", "result", RESULT_ERROR);
+    return json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
   }
 }
 
@@ -1167,7 +1161,7 @@ json_t * c_service_close(struct _u_instance * instance, const char * url_prefix)
  */
 json_t * c_service_command_get_list(struct _carleon_config * config) {
   return json_pack("{sis{s{s{ss}}s{s{s{ssso}}s{ss}}}}",
-                    "result", RESULT_OK,
+                    "result", WEBSERVICE_RESULT_OK,
                     "commands",
                       "online",
                         "result",
@@ -1196,23 +1190,23 @@ json_t * c_service_exec(struct _carleon_config * config, const char * command, c
 	if (command != NULL) {
 		if (0 == strcmp(command, "online")) {
 			service_motion = service_motion_get(config, element);
-			if (service_motion != NULL && json_integer_value(json_object_get(service_motion, "result")) == RESULT_OK) {
-				result = json_pack("{sisi}", "result", RESULT_OK, "value", is_motion_online(config, service_motion));
+			if (service_motion != NULL && json_integer_value(json_object_get(service_motion, "result")) == WEBSERVICE_RESULT_OK) {
+				result = json_pack("{sisi}", "result", WEBSERVICE_RESULT_OK, "value", is_motion_online(config, service_motion));
 			} else {
-				result = json_pack("{si}", "result", RESULT_ERROR);
+				result = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
 			}
 			json_decref(service_motion);
 		} else if (0 == strcmp(command, "snapshot")) {
 			if (parameters != NULL && json_object_get(parameters, "stream") != NULL) {
 				result = json_pack("{si}", "result", send_snapshot_command(config, element, json_string_value(json_object_get(parameters, "stream"))));
 			} else {
-				result = json_pack("{si}", "result", RESULT_PARAM);
+				result = json_pack("{si}", "result", WEBSERVICE_RESULT_PARAM);
 			}
 		} else {
-			result = json_pack("{si}", "result", RESULT_NOT_FOUND);
+			result = json_pack("{si}", "result", WEBSERVICE_RESULT_NOT_FOUND);
 		}
 	} else {
-		result = json_pack("{si}", "result", RESULT_ERROR);
+		result = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
 	}
 	return result;
 }

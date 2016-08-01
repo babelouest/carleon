@@ -61,10 +61,10 @@ json_t * service_get(struct _carleon_config * config, const char * name) {
         struct _carleon_service * c_service = get_service_from_name(config, json_string_value(json_object_get(service, "name")));
         if (c_service != NULL) {
           json_t * tmp = c_service->c_service_command_get_list(config);
-          if (json_integer_value(json_object_get(tmp, "result")) == WEBSERVICE_RESULT_OK && json_is_array(json_object_get(tmp, "commands"))) {
+          if (json_integer_value(json_object_get(tmp, "result")) == WEBSERVICE_RESULT_OK && json_is_object(json_object_get(tmp, "commands"))) {
             json_object_set_new(service, "commands", json_copy(json_object_get(tmp, "commands")));
           } else {
-            json_object_set_new(service, "commands", json_array());
+            json_object_set_new(service, "commands", json_object());
           }
           json_decref(tmp);
           tmp = c_service->c_service_element_get_list(config);
