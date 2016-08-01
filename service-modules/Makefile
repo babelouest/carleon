@@ -34,16 +34,16 @@ libservicemock.so: service-mock.o
 	$(CC) -shared -Wl,-soname,libservicemock.so -o libservicemock.so service-mock.o $(LIBS)
 
 service-mock.o: service-mock.c
-	$(CC) $(CFLAGS) $(FLAGS_YDER) service-mock.c
+	$(CC) $(CFLAGS) service-mock.c
 
 libservicemotion.so: service-motion.o
 	$(CC) -shared -Wl,-soname,libservicemotion.so -o libservicemotion.so service-motion.o $(LIBS) `pkg-config --libs MagickCore` -lpthread
 
 service-motion.o: service-motion.c
-	$(CC) `pkg-config --cflags MagickCore` $(CFLAGS) $(FLAGS_YDER) service-motion.c
+	$(CC) `pkg-config --cflags MagickCore` $(CFLAGS) service-motion.c
 
 clean:
-	rm -f *.o *.so unit-tests
+	rm -f *.o *.so valgrind.txt unit-tests test-motion 
 
 debug: ADDITIONALFLAGS=-DDEBUG -g -O0
 
@@ -56,6 +56,13 @@ release: libservicemock.so libservicemotion.so
 install: libservicemock.so libservicemotion.so
 	mkdir -p $(MODULES_TARGET)
 	cp -f libservicemock.so libservicemotion.so $(MODULES_TARGET)
+
+test-motion: ADDITIONALFLAGS=-DDEBUG -g -O0
+
+test-motion: test-service.c service-motion.o
+	$(CC) $(CFLAGS) test-service.c
+	$(CC) test-service.o service-motion.o -o test-motion -lpthread -ljansson -lyder -lorcania -lulfius -lhoel `pkg-config --libs MagickCore`
+	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all ./test-motion 2>valgrind.txt
 
 unit-tests: unit-tests.c
 	$(CC) -o unit-tests unit-tests.c -lc -lulfius -lorcania -ljansson -L$(PREFIX)/lib
