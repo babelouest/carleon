@@ -966,7 +966,7 @@ int callback_service_motion_stream (const struct _u_request * request, struct _u
 					
 					ulfius_set_stream_response(response, 200, stream_data, free_stream_data, -1, 32 * 1024, buffer);
 				}
-				//free(buffer);
+				free(buffer);
 			} else {
 				y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_motion_stream - error allocating resources for buffer");
 			}
@@ -976,6 +976,7 @@ int callback_service_motion_stream (const struct _u_request * request, struct _u
 	} else {
 		response->status = 500;
 	}
+	json_decref(service_motion);
   return U_OK;
 }
 
@@ -1096,13 +1097,13 @@ json_t * c_service_element_get_list(struct _carleon_config * config) {
 }
 
 json_t * c_service_exec(struct _carleon_config * config, const char * command, const char * element, json_t * parameters) {
-	json_t * service_motion, * result;
+	json_t * service_motion, * result = NULL;
 
 	if (command != NULL) {
 		if (0 == strcmp(command, "online")) {
 			service_motion = service_motion_get(config, element);
 			if (service_motion != NULL && json_integer_value(json_object_get(service_motion, "result")) == RESULT_OK) {
-				result = json_pack("{siso}", "result", RESULT_OK, "value", is_motion_online(config, service_motion));
+				result = json_pack("{sisi}", "result", RESULT_OK, "value", is_motion_online(config, service_motion));
 			} else {
 				result = json_pack("{si}", "result", RESULT_ERROR);
 			}
