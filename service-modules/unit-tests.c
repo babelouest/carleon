@@ -216,6 +216,40 @@ void run_service_motion_tests() {
   json_decref(service_motion_invalid);
 }
 
+void run_service_mpd_tests() {
+  json_t * service_mpd = json_loads("{\
+		\"name\": \"mpd1\",\
+		\"description\": \"mpd1\",\
+		\"host\": \"mpd1\",\
+		\"port\": 888,\
+		\"password\": \"password\"\
+  }", JSON_DECODE_ANY, NULL);
+  json_t * service_mpd_update = json_loads("{\
+		\"description\": \"mpd1 update\",\
+		\"host\": \"mpd1 update\",\
+		\"port\": 999,\
+		\"password\": \"password update\"\
+  }", JSON_DECODE_ANY, NULL);
+  json_t * service_mpd_invalid = json_loads("{\
+		\"name\": \"mpd2\",\
+		\"description\": \"mpd1\",\
+		\"host\": 44,\
+		\"port\": \"plop\"\
+  }", JSON_DECODE_ANY, NULL);
+  
+  run_simple_test("POST", SERVER_URL PREFIX_CARLEON "/service-mpd/", service_mpd, 200, NULL);
+  run_simple_test("POST", SERVER_URL PREFIX_CARLEON "/service-mpd/", service_mpd_invalid, 400, NULL);
+  run_simple_test("GET", SERVER_URL PREFIX_CARLEON "/service-mpd/mpd1", NULL, 200, service_mpd);
+  run_simple_test("GET", SERVER_URL PREFIX_CARLEON "/service-mpd/mpd2", NULL, 404, NULL);
+  run_simple_test("PUT", SERVER_URL PREFIX_CARLEON "/service-mpd/mpd1", service_mpd_update, 200, NULL);
+  run_simple_test("GET", SERVER_URL PREFIX_CARLEON "/service-mpd/", NULL, 200, NULL);
+  run_simple_test("DELETE", SERVER_URL PREFIX_CARLEON "/service-mpd/mpd1", NULL, 200, NULL);
+
+  json_decref(service_mpd);
+  json_decref(service_mpd_update);
+  json_decref(service_mpd_invalid);
+}
+
 int main(void) {
   printf("Press <enter> to run service mock tests\n");
   getchar();
@@ -223,5 +257,8 @@ int main(void) {
   printf("Press <enter> to run service motion tests\n");
   getchar();
   run_service_motion_tests();
+  printf("Press <enter> to run service mpd tests\n");
+  getchar();
+  run_service_mpd_tests();
   return 0;
 }

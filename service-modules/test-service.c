@@ -116,7 +116,6 @@ int main(int argc, char ** argv) {
   ulfius_clean_instance(&instance);
   h_close_db(config.conn);
   h_clean_connection(config.conn);
-  free(config.conn);
   y_close_logs();
   return 0;
 }

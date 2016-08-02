@@ -1,6 +1,9 @@
 *.o
 service-modules/*.o
 service-modules/*.so
+service-modules/test-mpd
+service-modules/test-motion
+service-modules/unit-test
 carleon-standalone
 unit-tests
 carleon.conf
