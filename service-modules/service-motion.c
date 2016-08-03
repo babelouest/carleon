@@ -885,6 +885,7 @@ size_t write_distant_body(void * contents, size_t size, size_t nmemb, void * use
 			}
 			pthread_mutex_unlock(&buffer->lock);
 		} else {
+			free(buffer);
 			res = 0;
 		}
 	} else {
@@ -936,6 +937,7 @@ ssize_t stream_data (void * cls, uint64_t pos, char * buf, size_t max) {
 		} else {
 			//y_log_message(Y_LOG_LEVEL_DEBUG, "Buffer is closed %d", buffer->close);
 			res = ULFIUS_STREAM_END;
+			free(buffer);
 		}
 	} else {
 		y_log_message(Y_LOG_LEVEL_ERROR, "write_distant_body - Error buffer is NULL");
@@ -1013,7 +1015,7 @@ int callback_service_motion_stream (const struct _u_request * request, struct _u
 				buffer->data = NULL;
 				buffer->size = 0;
 				buffer->close = 0;
-				buffer->stream_url = json_string_value(json_object_get(stream, "uri"));
+				buffer->stream_url = nstrdup(json_string_value(json_object_get(stream, "uri")));
 				u_map_put(response->map_header, "Content-Type", "multipart/x-mixed-replace; boundary=--BoundaryString");
 				u_map_put(response->map_header, "Pragma", "no-cache");
 				u_map_put(response->map_header, "Cache-Control", "no-cache, private");
@@ -1036,7 +1038,6 @@ int callback_service_motion_stream (const struct _u_request * request, struct _u
 					
 					ulfius_set_stream_response(response, 200, stream_data, free_stream_data, -1, 32 * 1024, buffer);
 				}
-				free(buffer);
 			} else {
 				y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_motion_stream - error allocating resources for buffer");
 			}
@@ -1119,7 +1120,7 @@ json_t * c_service_init(struct _u_instance * instance, const char * url_prefix, 
 
     ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/service-motion/@name/status", NULL, NULL, NULL, &callback_service_motion_status, (void*)config);
     ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/service-motion/@name/image/@file_list/@file_name", NULL, NULL, NULL, &callback_service_motion_image, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/service-motion/@name/stream/@stream_name", NULL, NULL, NULL, &callback_service_motion_stream, (void*)config);
+    //ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/service-motion/@name/stream/@stream_name", NULL, NULL, NULL, &callback_service_motion_stream, (void*)config);
     ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/service-motion/@name/stream/@stream_name/snapshot", NULL, NULL, NULL, &callback_service_motion_snapshot, (void*)config);
 
     return json_pack("{sissss}", 
