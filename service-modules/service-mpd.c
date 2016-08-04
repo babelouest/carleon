@@ -333,64 +333,75 @@ int callback_service_mpd_remove (const struct _u_request * request, struct _u_re
  * get the status the specified mpd
  */
 json_t * mpd_get_status(struct _carleon_config * config, json_t * mpd) {
-	struct mpd_connection *conn;
+	struct mpd_connection * conn;
   json_t * to_return;
   struct mpd_status * status;
   struct mpd_song * song;
+  int auth = 1;
 
 	conn = mpd_connection_new(json_string_value(json_object_get(mpd, "host")), json_integer_value(json_object_get(mpd, "port")), MPD_CONNECT_TIMEOUT);
   
   if (mpd_connection_get_error(conn) != MPD_ERROR_SUCCESS) {
-    y_log_message(Y_LOG_LEVEL_ERROR, "mpd_get_status - Error mpd_connection_get_error, message is %s", mpd_connection_get_error_message(conn));
+    y_log_message(Y_LOG_LEVEL_ERROR, "mpd_get_status - Error mpd_connection_new, message is %s", mpd_connection_get_error_message(conn));
     to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
   } else {
-    mpd_command_list_begin(conn, true);
-    mpd_send_status(conn);
-    mpd_send_current_song(conn);
-    mpd_command_list_end(conn);
-
-		status = mpd_recv_status(conn);
-		if (status == NULL) {
-      y_log_message(Y_LOG_LEVEL_ERROR, "mpd_get_status - Error mpd_recv_status, message is %s", mpd_connection_get_error_message(conn));
-      to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
-    } else {
-      char * state = "";
-      
-      switch (mpd_status_get_state(status)) {
-        case MPD_STATE_PLAY:
-          state = "play";
-          break;
-        case MPD_STATE_PAUSE:
-          state = "pause";
-          break;
-        case MPD_STATE_STOP:
-          state = "stop";
-          break;
-        default:
-          state = "unknown";
-          break;
+    if (json_object_get(mpd, "password") != NULL && json_is_string(json_object_get(mpd, "password")) && json_string_length(json_object_get(mpd, "password")) > 0) {
+      if (!mpd_run_password(conn, json_string_value(json_object_get(mpd, "password")))) {
+        auth = 0;
       }
-      to_return = json_pack("{sis{sssisisi}}", 
-                            "result", 
-                              WEBSERVICE_RESULT_OK,
-                            "status",
-                              "state", state,
-                              "volume", mpd_status_get_volume(status),
-                              "elapsed_time", mpd_status_get_elapsed_time(status),
-                              "total_time", mpd_status_get_total_time(status));
     }
-    mpd_status_free(status);
-    mpd_response_next(conn);
-    
-    song = mpd_recv_song(conn);
-    if (song != NULL && to_return != NULL) {
-      json_object_set_new(json_object_get(to_return, "status"), "title", json_string(mpd_song_get_tag(song, MPD_TAG_TITLE, 0)));
-      json_object_set_new(json_object_get(to_return, "status"), "artist", json_string(mpd_song_get_tag(song, MPD_TAG_ARTIST, 0)));
-      json_object_set_new(json_object_get(to_return, "status"), "album", json_string(mpd_song_get_tag(song, MPD_TAG_ALBUM, 0)));
-      json_object_set_new(json_object_get(to_return, "status"), "date", json_string(mpd_song_get_tag(song, MPD_TAG_DATE, 0)));
-      json_object_set_new(json_object_get(to_return, "status"), "name", json_string(mpd_song_get_tag(song, MPD_TAG_NAME, 0)));
-      json_object_set_new(json_object_get(to_return, "status"), "track", json_string(mpd_song_get_tag(song, MPD_TAG_TRACK, 0)));
-      mpd_song_free(song);
+    if (auth) {
+      mpd_command_list_begin(conn, true);
+      mpd_send_status(conn);
+      mpd_send_current_song(conn);
+      mpd_command_list_end(conn);
+
+      status = mpd_recv_status(conn);
+      if (status == NULL) {
+        y_log_message(Y_LOG_LEVEL_ERROR, "mpd_get_status - Error mpd_recv_status, message is %s", mpd_connection_get_error_message(conn));
+        to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
+      } else {
+        char * state = "";
+        
+        switch (mpd_status_get_state(status)) {
+          case MPD_STATE_PLAY:
+            state = "play";
+            break;
+          case MPD_STATE_PAUSE:
+            state = "pause";
+            break;
+          case MPD_STATE_STOP:
+            state = "stop";
+            break;
+          default:
+            state = "unknown";
+            break;
+        }
+        to_return = json_pack("{sis{sssisisi}}", 
+                              "result", 
+                                WEBSERVICE_RESULT_OK,
+                              "status",
+                                "state", state,
+                                "volume", mpd_status_get_volume(status),
+                                "elapsed_time", mpd_status_get_elapsed_time(status),
+                                "total_time", mpd_status_get_total_time(status));
+      }
+      mpd_status_free(status);
+      mpd_response_next(conn);
+      
+      song = mpd_recv_song(conn);
+      if (song != NULL && to_return != NULL) {
+        json_object_set_new(json_object_get(to_return, "status"), "title", json_string(mpd_song_get_tag(song, MPD_TAG_TITLE, 0)));
+        json_object_set_new(json_object_get(to_return, "status"), "artist", json_string(mpd_song_get_tag(song, MPD_TAG_ARTIST, 0)));
+        json_object_set_new(json_object_get(to_return, "status"), "album", json_string(mpd_song_get_tag(song, MPD_TAG_ALBUM, 0)));
+        json_object_set_new(json_object_get(to_return, "status"), "date", json_string(mpd_song_get_tag(song, MPD_TAG_DATE, 0)));
+        json_object_set_new(json_object_get(to_return, "status"), "name", json_string(mpd_song_get_tag(song, MPD_TAG_NAME, 0)));
+        json_object_set_new(json_object_get(to_return, "status"), "track", json_string(mpd_song_get_tag(song, MPD_TAG_TRACK, 0)));
+        mpd_song_free(song);
+      }
+    } else {
+      y_log_message(Y_LOG_LEVEL_ERROR, "mpd_get_status - Error mpd_run_password, message is %s", mpd_connection_get_error_message(conn));
+      to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
     }
   }
   mpd_connection_free(conn);
@@ -438,27 +449,38 @@ int callback_service_mpd_status (const struct _u_request * request, struct _u_re
 json_t * mpd_set_action(struct _carleon_config * config, json_t * mpd, const char * action) {
 	struct mpd_connection *conn;
   json_t * to_return;
+  int auth = 1;
 
 	conn = mpd_connection_new(json_string_value(json_object_get(mpd, "host")), json_integer_value(json_object_get(mpd, "port")), MPD_CONNECT_TIMEOUT);
   
   if (mpd_connection_get_error(conn) != MPD_ERROR_SUCCESS) {
-    y_log_message(Y_LOG_LEVEL_ERROR, "mpd_get_status - Error mpd_connection_get_error, message is %s", mpd_connection_get_error_message(conn));
+    y_log_message(Y_LOG_LEVEL_ERROR, "mpd_get_status - Error mpd_connection_new, message is %s", mpd_connection_get_error_message(conn));
     to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
   } else {
-    to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_OK);
-    if (0 == strcmp(action, "stop")) {
-      if (!mpd_run_stop(conn)) {
-        to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
+    if (json_object_get(mpd, "password") != NULL && json_is_string(json_object_get(mpd, "password")) && json_string_length(json_object_get(mpd, "password")) > 0) {
+      if (!mpd_run_password(conn, json_string_value(json_object_get(mpd, "password")))) {
+        auth = 0;
       }
-    } else if (0 == strcmp(action, "play")) {
-      if (!mpd_run_play(conn)) {
-        to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
-      }
-    } else if (0 == strcmp(action, "pause")) {
-      if (!mpd_run_pause(conn, true)) {
+    }
+    if (auth) {
+      to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_OK);
+      if (0 == strcmp(action, "stop")) {
+        if (!mpd_run_stop(conn)) {
+          to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
+        }
+      } else if (0 == strcmp(action, "play")) {
+        if (!mpd_run_play(conn)) {
+          to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
+        }
+      } else if (0 == strcmp(action, "pause")) {
+        if (!mpd_run_pause(conn, true)) {
+          to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
+        }
+      } else {
         to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
       }
     } else {
+      y_log_message(Y_LOG_LEVEL_ERROR, "mpd_get_status - Error mpd_run_password, message is %s", mpd_connection_get_error_message(conn));
       to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
     }
   }
@@ -505,9 +527,10 @@ int callback_service_mpd_action (const struct _u_request * request, struct _u_re
  * Get all the playlists available for the specified mpd
  */
 json_t * mpd_get_playlists(struct _carleon_config * config, json_t * mpd) {
-	struct mpd_connection *conn;
-  struct mpd_playlist *playlist;
+	struct mpd_connection * conn;
+  struct mpd_playlist * playlist;
   json_t * to_return, * j_list;
+  int auth = 1;
 
 	conn = mpd_connection_new(json_string_value(json_object_get(mpd, "host")), json_integer_value(json_object_get(mpd, "port")), MPD_CONNECT_TIMEOUT);
   
@@ -515,21 +538,31 @@ json_t * mpd_get_playlists(struct _carleon_config * config, json_t * mpd) {
     y_log_message(Y_LOG_LEVEL_ERROR, "mpd_get_playlists - Error mpd_connection_new, message is %s", mpd_connection_get_error_message(conn));
     to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
   } else {
-    if (!mpd_send_list_playlists(conn)) {
-      y_log_message(Y_LOG_LEVEL_ERROR, "mpd_get_playlists - Error mpd_recv_status, message is %s", mpd_connection_get_error_message(conn));
-      to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
-    } else {
-      j_list = json_array();
-      if (j_list == NULL) {
-        y_log_message(Y_LOG_LEVEL_ERROR, "mpd_get_playlists - Error allocating resources for j_list");
+    if (json_object_get(mpd, "password") != NULL && json_is_string(json_object_get(mpd, "password")) && json_string_length(json_object_get(mpd, "password")) > 0) {
+      if (!mpd_run_password(conn, json_string_value(json_object_get(mpd, "password")))) {
+        auth = 0;
+      }
+    }
+    if (auth) {
+      if (!mpd_send_list_playlists(conn)) {
+        y_log_message(Y_LOG_LEVEL_ERROR, "mpd_get_playlists - Error mpd_recv_status, message is %s", mpd_connection_get_error_message(conn));
         to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
       } else {
-        while ((playlist = mpd_recv_playlist(conn)) != NULL) {
-          json_array_append_new(j_list, json_string(mpd_playlist_get_path(playlist)));
-          mpd_playlist_free(playlist);
+        j_list = json_array();
+        if (j_list == NULL) {
+          y_log_message(Y_LOG_LEVEL_ERROR, "mpd_get_playlists - Error allocating resources for j_list");
+          to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
+        } else {
+          while ((playlist = mpd_recv_playlist(conn)) != NULL) {
+            json_array_append_new(j_list, json_string(mpd_playlist_get_path(playlist)));
+            mpd_playlist_free(playlist);
+          }
+          to_return = json_pack("{siso}", "result", WEBSERVICE_RESULT_OK, "list", j_list);
         }
-        to_return = json_pack("{siso}", "result", WEBSERVICE_RESULT_OK, "list", j_list);
       }
+    } else {
+      y_log_message(Y_LOG_LEVEL_ERROR, "mpd_get_status - Error mpd_run_password, message is %s", mpd_connection_get_error_message(conn));
+      to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
     }
   }
   mpd_connection_free(conn);
@@ -578,7 +611,7 @@ json_t * mpd_load_playlist(struct _carleon_config * config, json_t * mpd, const 
 	struct mpd_connection *conn;
   struct mpd_playlist * m_playlist;
   json_t * to_return;
-  int found = 0;
+  int found = 0, auth = 1;
 
 	conn = mpd_connection_new(json_string_value(json_object_get(mpd, "host")), json_integer_value(json_object_get(mpd, "port")), MPD_CONNECT_TIMEOUT);
   
@@ -586,26 +619,36 @@ json_t * mpd_load_playlist(struct _carleon_config * config, json_t * mpd, const 
     y_log_message(Y_LOG_LEVEL_ERROR, "mpd_load_playlist - Error mpd_connection_new, message is %s", mpd_connection_get_error_message(conn));
     to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
   } else {
-    if (!mpd_send_list_playlists(conn)) {
-      y_log_message(Y_LOG_LEVEL_ERROR, "mpd_load_playlist - Error mpd_send_list_playlists, message is %s", mpd_connection_get_error_message(conn));
-      to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
-    } else {
-      while ((m_playlist = mpd_recv_playlist(conn)) != NULL) {
-        if (0 == strcmp(mpd_playlist_get_path(m_playlist), playlist)) {
-          found = 1;
-        }
-        mpd_playlist_free(m_playlist);
+    if (json_object_get(mpd, "password") != NULL && json_is_string(json_object_get(mpd, "password")) && json_string_length(json_object_get(mpd, "password")) > 0) {
+      if (!mpd_run_password(conn, json_string_value(json_object_get(mpd, "password")))) {
+        auth = 0;
       }
-      if (found) {
-        if (mpd_run_clear(conn) && mpd_run_load(conn, playlist) && mpd_run_play(conn)) {
-          to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_OK);
-        } else {
-          y_log_message(Y_LOG_LEVEL_ERROR, "mpd_load_playlist - Error mpd_run_load, message is %s", mpd_connection_get_error_message(conn));
-          to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
-        }
+    }
+    if (auth) {
+      if (!mpd_send_list_playlists(conn)) {
+        y_log_message(Y_LOG_LEVEL_ERROR, "mpd_load_playlist - Error mpd_send_list_playlists, message is %s", mpd_connection_get_error_message(conn));
+        to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
       } else {
-        to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_NOT_FOUND);
+        while ((m_playlist = mpd_recv_playlist(conn)) != NULL) {
+          if (0 == strcmp(mpd_playlist_get_path(m_playlist), playlist)) {
+            found = 1;
+          }
+          mpd_playlist_free(m_playlist);
+        }
+        if (found) {
+          if (mpd_run_clear(conn) && mpd_run_load(conn, playlist) && mpd_run_play(conn)) {
+            to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_OK);
+          } else {
+            y_log_message(Y_LOG_LEVEL_ERROR, "mpd_load_playlist - Error mpd_run_load, message is %s", mpd_connection_get_error_message(conn));
+            to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
+          }
+        } else {
+          to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_NOT_FOUND);
+        }
       }
+    } else {
+      y_log_message(Y_LOG_LEVEL_ERROR, "mpd_get_status - Error mpd_run_password, message is %s", mpd_connection_get_error_message(conn));
+      to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
     }
   }
   mpd_connection_free(conn);
@@ -651,8 +694,9 @@ int callback_service_mpd_playlists_load (const struct _u_request * request, stru
  * change the volume of the specified mpd
  */
 json_t * mpd_set_volume(struct _carleon_config * config, json_t * mpd, uint volume) {
-	struct mpd_connection *conn;
+	struct mpd_connection * conn;
   json_t * to_return;
+  int auth = 1;
 
 	conn = mpd_connection_new(json_string_value(json_object_get(mpd, "host")), json_integer_value(json_object_get(mpd, "port")), MPD_CONNECT_TIMEOUT);
   
@@ -660,10 +704,20 @@ json_t * mpd_set_volume(struct _carleon_config * config, json_t * mpd, uint volu
     y_log_message(Y_LOG_LEVEL_ERROR, "mpd_volume_set - Error mpd_connection_new, message is %s", mpd_connection_get_error_message(conn));
     to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
   } else {
-    if (mpd_run_set_volume(conn, volume)) {
-      to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_OK);
+    if (json_object_get(mpd, "password") != NULL && json_is_string(json_object_get(mpd, "password")) && json_string_length(json_object_get(mpd, "password")) > 0) {
+      if (!mpd_run_password(conn, json_string_value(json_object_get(mpd, "password")))) {
+        auth = 0;
+      }
+    }
+    if (auth) {
+      if (mpd_run_set_volume(conn, volume)) {
+        to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_OK);
+      } else {
+        y_log_message(Y_LOG_LEVEL_ERROR, "mpd_volume_set - Error mpd_run_set_volume, message is %s", mpd_connection_get_error_message(conn));
+        to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
+      }
     } else {
-      y_log_message(Y_LOG_LEVEL_ERROR, "mpd_volume_set - Error mpd_run_set_volume, message is %s", mpd_connection_get_error_message(conn));
+      y_log_message(Y_LOG_LEVEL_ERROR, "mpd_get_status - Error mpd_run_password, message is %s", mpd_connection_get_error_message(conn));
       to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
     }
   }
@@ -789,15 +843,16 @@ json_t * c_service_exec(struct _carleon_config * config, const char * command, c
       result = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
     } else {
       if (0 == strcmp(command, "action")) {
-        result = mpd_set_action(config, mpd, json_string_value(json_object_get(parameters, "action")));
+        result = mpd_set_action(config, json_object_get(mpd, "element"), json_string_value(json_object_get(parameters, "action")));
       } else if (0 == strcmp(command, "load_playlist")) {
-        result = mpd_load_playlist(config, mpd, json_string_value(json_object_get(parameters, "playlist")));
+        result = mpd_load_playlist(config, json_object_get(mpd, "element"), json_string_value(json_object_get(parameters, "playlist")));
       } else if (0 == strcmp(command, "set_volume")) {
-        result = mpd_set_volume(config, mpd, json_integer_value(json_object_get(parameters, "volume")));
+        result = mpd_set_volume(config, json_object_get(mpd, "element"), json_integer_value(json_object_get(parameters, "volume")));
       } else {
         result = json_pack("{si}", "result", WEBSERVICE_RESULT_NOT_FOUND);
       }
     }
+    json_decref(mpd);
 	} else {
 		result = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
 	}
