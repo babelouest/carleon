@@ -110,7 +110,7 @@ json_t * service_get(struct _carleon_config * config, const char * name) {
 json_t * parse_service_from_db(json_t * service) {
   if (service != NULL && json_is_object(service)) {
     return json_pack("{ssssso}", "name", json_string_value(json_object_get(service, "cs_name")),
-                                 "description", json_string_value(json_object_get(service, "cs_description")),
+                                 "description", json_object_get(service, "cs_description")!=NULL?json_string_value(json_object_get(service, "cs_description")):"",
                                  "enabled", json_integer_value(json_object_get(service, "cs_enabled")) == 1 ? json_true() : json_false());
   }
   return NULL;

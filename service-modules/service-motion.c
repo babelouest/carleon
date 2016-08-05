@@ -7,6 +7,9 @@
  * Motion service module
  * Used to show images taken and real-time stream of a motion application
  *
+ * library MagickCore is required to install
+ * sudo apt-get install libmagickcore-dev
+ * 
  * Copyright 2016 Nicolas Mora <mail@babelouest.org>
  *
  * Licence GPL V3
@@ -170,7 +173,7 @@ json_t * service_motion_add(struct _carleon_config * config, json_t * service_mo
                                 "csms_uri",
                                 json_string_value(json_object_get(element, "uri")),
                                 "csms_snapshot_uri",
-                                json_string_value(json_object_get(element, "snapshot_uri")));
+                                json_object_get(element, "snapshot_uri")!=NULL?json_string_value(json_object_get(element, "snapshot_uri")):"");
           res = h_insert(config->conn, j_query, NULL);
           json_decref(j_query);
           if (res != H_OK) {
@@ -272,7 +275,7 @@ json_t * service_motion_set(struct _carleon_config * config, const char * name, 
                                   "csms_uri",
                                   json_string_value(json_object_get(element, "uri")),
                                   "csms_snapshot_uri",
-                                  json_string_value(json_object_get(element, "snapshot_uri")));
+                                  json_object_get(element, "snapshot_uri")!=NULL?json_string_value(json_object_get(element, "snapshot_uri")):"");
             res = h_insert(config->conn, j_query, NULL);
             json_decref(j_query);
             if (res != H_OK) {

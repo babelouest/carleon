@@ -79,7 +79,7 @@ int mock_element_add(struct _carleon_config * config, json_t * element) {
                                 "table", "c_mock_service", 
                                 "values", 
                                   "cms_name", json_string_value(json_object_get(element, "name")),
-                                  "cms_description", json_string_value(json_object_get(element, "description")));
+                                  "cms_description", json_object_get(element, "description")!=NULL?json_string_value(json_object_get(element, "description")):"");
   int res;
   
   if (json_integer_value(json_object_get(cur_element, "result")) == WEBSERVICE_RESULT_OK || json_integer_value(json_object_get(cur_element, "result")) == WEBSERVICE_RESULT_ERROR) {
@@ -103,7 +103,7 @@ int mock_element_modify(struct _carleon_config * config, const char * element_id
           * j_query = json_pack("{sss{ss}s{ss}}", 
                                 "table", "c_mock_service", 
                                 "set", 
-                                  "cms_description", json_string_value(json_object_get(element, "description")),
+                                  "cms_description", json_object_get(element, "description")!=NULL?json_string_value(json_object_get(element, "description")):"",
                                 "where",
                                   "cms_name", element_id);
   int res;

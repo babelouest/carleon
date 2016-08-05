@@ -12,6 +12,9 @@
  * - load and play a specified playlist
  * - set the volume
  *
+ * library mpdclient is required to install
+ * sudo apt-get install libmpdclient-dev
+ * 
  * Copyright 2016 Nicolas Mora <mail@babelouest.org>
  *
  * Licence GPL V3
@@ -545,7 +548,7 @@ json_t * mpd_get_playlists(struct _carleon_config * config, json_t * mpd) {
     }
     if (auth) {
       if (!mpd_send_list_playlists(conn)) {
-        y_log_message(Y_LOG_LEVEL_ERROR, "mpd_get_playlists - Error mpd_recv_status, message is %s", mpd_connection_get_error_message(conn));
+        y_log_message(Y_LOG_LEVEL_ERROR, "mpd_get_playlists - Error mpd_send_list_playlists, message is %s", mpd_connection_get_error_message(conn));
         to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
       } else {
         j_list = json_array();
