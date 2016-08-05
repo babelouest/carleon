@@ -43,7 +43,7 @@ service-motion.o: service-motion.c
 	$(CC) `pkg-config --cflags MagickCore` $(CFLAGS) service-motion.c
 
 libservicempd.so: service-mpd.o
-	$(CC) -shared -Wl,-soname,libservicempd.so -o libservicempd.so service-mpd.o $(LIBS) -lmpdclient
+	$(CC) -shared -Wl,-soname,libservicempd.so -o libservicempd.so service-mpd.o $(LIBS) -lmpdclient -L/usr/local/lib
 
 service-mpd.o: service-mpd.c
 	$(CC) `pkg-config --cflags MagickCore` $(CFLAGS) service-mpd.c
@@ -57,11 +57,11 @@ debug: libservicemock.so libservicemotion.so libservicempd.so
 
 release: ADDITIONALFLAGS=-O3
 
-release: libservicemock.so libservicemotion.so libservicempd.so
+release: libservicemotion.so libservicempd.so
 
-install: libservicemock.so libservicemotion.so libservicempd.so
+install: all
 	mkdir -p $(MODULES_TARGET)
-	cp -f libservicemock.so libservicemotion.so libservicempd.so $(MODULES_TARGET)
+	cp -f *.so $(MODULES_TARGET)
 
 test-motion: ADDITIONALFLAGS=-DDEBUG -g -O0
 
