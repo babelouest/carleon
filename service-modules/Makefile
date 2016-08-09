@@ -59,7 +59,7 @@ release: ADDITIONALFLAGS=-O3
 
 release: libservicemotion.so libservicempd.so
 
-install: all
+install:
 	mkdir -p $(MODULES_TARGET)
 	cp -f *.so $(MODULES_TARGET)
 
