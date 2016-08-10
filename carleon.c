@@ -55,11 +55,6 @@ int close_carleon(struct _u_instance * instance, const char * url_prefix, struct
     ulfius_remove_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_name/@element_id/@tag");
     ulfius_remove_endpoint_by_val(instance, "DELETE", url_prefix, "/service/@service_name/@element_id/@tag");
 
-    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/profile");
-    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/profile/@profile_id");
-    ulfius_remove_endpoint_by_val(instance, "PUT", url_prefix, "/profile/@profile_id");
-    ulfius_remove_endpoint_by_val(instance, "DELETE", url_prefix, "/profile/@profile_id");
-    
     if (close_service_list(config, instance, url_prefix) == C_OK) {
       y_log_message(Y_LOG_LEVEL_INFO, "closing carleon");
       return C_OK;
