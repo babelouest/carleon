@@ -46,7 +46,7 @@ libservicempd.so: service-mpd.o
 	$(CC) -shared -Wl,-soname,libservicempd.so -o libservicempd.so service-mpd.o $(LIBS) -lmpdclient -L/usr/local/lib
 
 service-mpd.o: service-mpd.c
-	$(CC) `pkg-config --cflags MagickCore` $(CFLAGS) service-mpd.c
+	$(CC) $(CFLAGS) service-mpd.c
 
 clean:
 	rm -f *.o *.so valgrind.txt unit-tests test-motion test-mpd 
