@@ -26,6 +26,8 @@
 #include <magick/MagickCore.h>
 #include "../carleon.h"
 
+#define MAXBUFFER 32*128 // Limit of the buffer set to 32 KB (per stream)
+
 /**
  * Some declarations
  */
@@ -910,20 +912,23 @@ size_t write_distant_body(void * contents, size_t size, size_t nmemb, void * use
 	if ((*buffer) != NULL && (*buffer)->server_used) {
 		usleep(50);
 		if (!pthread_mutex_lock(&(*buffer)->lock)) {
-			void * new_data = malloc((size * nmemb) + (*buffer)->size + 1);
-			if (new_data != NULL) {
-				if ((*buffer)->data != NULL) {
-					memcpy(new_data, (*buffer)->data, (*buffer)->size);
+			// Test if the buffer is still in the limit
+			if ((size * nmemb) + (*buffer)->size + 1 < MAXBUFFER) {
+				void * new_data = malloc((size * nmemb) + (*buffer)->size + 1);
+				if (new_data != NULL) {
+					if ((*buffer)->data != NULL) {
+						memcpy(new_data, (*buffer)->data, (*buffer)->size);
+					}
+					memcpy(new_data + (*buffer)->size, contents, (size * nmemb));
+					free((*buffer)->data);
+					(*buffer)->data = new_data;
+					(*buffer)->size += (size * nmemb);
+					//y_log_message(Y_LOG_LEVEL_DEBUG, "write buffer size %ld, now %ld", (size * nmemb), (*buffer)->size);
+				} else {
+					y_log_message(Y_LOG_LEVEL_ERROR, "write_distant_body - Error allocating resources for new_data");
+					(*buffer)->client_used = 0;
+					res = 0;
 				}
-				memcpy(new_data + (*buffer)->size, contents, (size * nmemb));
-				free((*buffer)->data);
-				(*buffer)->data = new_data;
-				(*buffer)->size += (size * nmemb);
-				//y_log_message(Y_LOG_LEVEL_DEBUG, "write buffer size %ld, now %ld", (size * nmemb), (*buffer)->size);
-			} else {
-				y_log_message(Y_LOG_LEVEL_ERROR, "write_distant_body - Error allocating resources for new_data");
-				(*buffer)->client_used = 0;
-				res = 0;
 			}
 		}
 		pthread_mutex_unlock(&(*buffer)->lock);
