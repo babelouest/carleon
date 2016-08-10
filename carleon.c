@@ -34,11 +34,6 @@ int init_carleon(struct _u_instance * instance, const char * url_prefix, struct 
     ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_name/@element_id/@tag", NULL, NULL, NULL, &callback_carleon_service_element_add_tag, (void*)config);
     ulfius_add_endpoint_by_val(instance, "DELETE", url_prefix, "/service/@service_name/@element_id/@tag", NULL, NULL, NULL, &callback_carleon_service_element_remove_tag, (void*)config);
 
-    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/profile", NULL, NULL, NULL, &callback_carleon_profile_list, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/profile/@profile_id", NULL, NULL, NULL, &callback_carleon_profile_get, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/profile/@profile_id", NULL, NULL, NULL, &callback_carleon_profile_set, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "DELETE", url_prefix, "/profile/@profile_id", NULL, NULL, NULL, &callback_carleon_profile_remove, (void*)config);
-    
     if (init_service_list(instance, url_prefix, config) == C_OK) {
       y_log_message(Y_LOG_LEVEL_INFO, "carleon is available on prefix %s", url_prefix);
       return C_OK;
@@ -401,80 +396,6 @@ int callback_carleon_service_element_cleanup (const struct _u_request * request,
     } else if (res == C_ERROR_PARAM) {
       ulfius_set_json_response(response, 400, json_pack("{ss}", "error", "enable_value must be 0 or 1"));
     } else {
-      response->status = 500;
-    }
-    return U_OK;
-  }
-}
-
-int callback_carleon_profile_list (const struct _u_request * request, struct _u_response * response, void * user_data) {
-  json_t * j_list;
-  
-  if (user_data == NULL) {
-    y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_profile_list - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
-  } else {
-    j_list = profile_list((struct _carleon_config *)user_data);
-    if (json_integer_value(json_object_get(j_list, "result")) != WEBSERVICE_RESULT_OK) {
-      response->status = 500;
-    } else {
-      response->json_body = json_copy(json_object_get(j_list, "list"));
-    }
-    json_decref(j_list);
-    return U_OK;
-  }
-}
-
-int callback_carleon_profile_get (const struct _u_request * request, struct _u_response * response, void * user_data) {
-  json_t * j_profile;
-  
-  if (user_data == NULL) {
-    y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_profile_list - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
-  } else {
-    j_profile = profile_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "profile_id"));
-    if (json_integer_value(json_object_get(j_profile, "result")) == WEBSERVICE_RESULT_OK) {
-      response->json_body = json_copy(json_object_get(j_profile, "profile"));
-    } else if (json_integer_value(json_object_get(j_profile, "result")) == WEBSERVICE_RESULT_NOT_FOUND) {
-      response->status = 404;
-    } else {
-      response->status = 500;
-    }
-    json_decref(j_profile);
-    return U_OK;
-  }
-}
-
-int callback_carleon_profile_set (const struct _u_request * request, struct _u_response * response, void * user_data) {
-  int res;
-  
-  if (user_data == NULL) {
-    y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_profile_list - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
-  } else {
-    res = profile_modify((struct _carleon_config *)user_data, u_map_get(request->map_url, "profile_id"), request->json_body);
-    if (res == C_ERROR_PARAM) {
-      response->status = 400;
-    } else if (res != C_OK) {
-      response->status = 500;
-    }
-    return U_OK;
-  }
-}
-
-int callback_carleon_profile_remove (const struct _u_request * request, struct _u_response * response, void * user_data) {
-  int res;
-  
-  if (user_data == NULL) {
-    y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_profile_list - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
-  } else {
-    res = profile_delete((struct _carleon_config *)user_data, u_map_get(request->map_url, "profile_id"));
-    if (res == C_ERROR_PARAM) {
-      response->status = 400;
-    } else if (res == C_ERROR_NOT_FOUND) {
-      response->status = 404;
-    } else if (res != C_OK) {
       response->status = 500;
     }
     return U_OK;

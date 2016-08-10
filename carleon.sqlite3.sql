@@ -1,5 +1,4 @@
 
-DROP TABLE IF EXISTS `c_profile`;
 DROP TABLE IF EXISTS `c_element`;
 DROP TABLE IF EXISTS `c_service`;
 
@@ -13,10 +12,4 @@ CREATE TABLE `c_element` (
   `cs_name` TEXT,
   `ce_name` TEXT,
   `ce_tag` TEXT
-);
-
-CREATE TABLE `c_profile` (
-  `cp_id` INTEGER PRIMARY KEY AUTOINCREMENT,
-  `cp_name` TEXT NOT NULL UNIQUE,
-  `cp_data` TEXT
 );

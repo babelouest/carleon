@@ -58,7 +58,6 @@
 
 #define CARLEON_TABLE_SERVICE "c_service"
 #define CARLEON_TABLE_ELEMENT "c_element"
-#define CARLEON_TABLE_PROFILE "c_profile"
 
 struct _carleon_config {
   char                    * services_path;
@@ -107,25 +106,11 @@ int service_element_cleanup(struct _carleon_config * config, const char * servic
 int service_element_add_tag(struct _carleon_config * config, const char * service, const char * element, const char * tag);
 int service_element_remove_tag(struct _carleon_config * config, const char * service, const char * element, const char * tag);
 
-// profiles core functions
-json_t * profile_list(struct _carleon_config * config);
-json_t * profile_get(struct _carleon_config * config, const char * profile_id);
-int profile_add(struct _carleon_config * config, const char * profile_id, json_t * profile_data);
-int profile_modify(struct _carleon_config * config, const char * profile_id, json_t * profile_data);
-int profile_delete(struct _carleon_config * config, const char * profile_id);
-
 // Services callback functions
 int callback_carleon_service_get (const struct _u_request * request, struct _u_response * response, void * user_data);
 int callback_carleon_service_enable (const struct _u_request * request, struct _u_response * response, void * user_data);
 int callback_carleon_service_element_cleanup (const struct _u_request * request, struct _u_response * response, void * user_data);
 int callback_carleon_service_element_add_tag (const struct _u_request * request, struct _u_response * response, void * user_data);
 int callback_carleon_service_element_remove_tag (const struct _u_request * request, struct _u_response * response, void * user_data);
-
-// Profile callback functions
-int callback_carleon_profile_list (const struct _u_request * request, struct _u_response * response, void * user_data);
-int callback_carleon_profile_get (const struct _u_request * request, struct _u_response * response, void * user_data);
-int callback_carleon_profile_add (const struct _u_request * request, struct _u_response * response, void * user_data);
-int callback_carleon_profile_set (const struct _u_request * request, struct _u_response * response, void * user_data);
-int callback_carleon_profile_remove (const struct _u_request * request, struct _u_response * response, void * user_data);
 
 #endif
