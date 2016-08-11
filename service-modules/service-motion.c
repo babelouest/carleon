@@ -26,7 +26,7 @@
 #include <magick/MagickCore.h>
 #include "../carleon.h"
 
-#define MAXBUFFER 32*128 // Limit of the buffer set to 32 KB (per stream)
+#define MAXBUFFER 128*128 // Limit of the buffer set to 128 KB (per stream)
 
 /**
  * Some declarations
