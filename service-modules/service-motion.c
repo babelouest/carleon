@@ -944,7 +944,7 @@ size_t write_distant_body(void * contents, size_t size, size_t nmemb, void * use
  */
 ssize_t stream_data (void * cls, uint64_t pos, char * buf, size_t max) {
 	struct stream_buffer ** buffer = (struct stream_buffer **)cls;
-	ssize_t res;
+	ssize_t res = ULFIUS_STREAM_END;
 	
 	if ((*buffer) != NULL && (*buffer)->client_used) {
 		usleep(50);
@@ -970,7 +970,6 @@ ssize_t stream_data (void * cls, uint64_t pos, char * buf, size_t max) {
 						res = len;
 					} else {
 						y_log_message(Y_LOG_LEVEL_ERROR, "stream_data - Error allocating memory for new_data");
-						res = ULFIUS_STREAM_END;
 					}
 				}
 				//y_log_message(Y_LOG_LEVEL_DEBUG, "stream_data now buffer size %ld", (*buffer)->size);
@@ -979,8 +978,6 @@ ssize_t stream_data (void * cls, uint64_t pos, char * buf, size_t max) {
 			}
 		}
 		pthread_mutex_unlock(&(*buffer)->lock);
-	} else {
-    res = ULFIUS_STREAM_END;
 	}
 	return res;
 }

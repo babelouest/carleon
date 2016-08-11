@@ -25,6 +25,9 @@
 
 #include "carleon.h"
 
+/**
+ * Get all services or the one specified by its name
+ */
 json_t * service_get(struct _carleon_config * config, const char * name) {
   json_t * j_query, * j_result, * to_return, * j_service;
   int res;
@@ -107,6 +110,9 @@ json_t * service_get(struct _carleon_config * config, const char * name) {
   }
 }
 
+/**
+ * Parse a service from the database to the web format
+ */
 json_t * parse_service_from_db(json_t * service) {
   if (service != NULL && json_is_object(service)) {
     return json_pack("{ssssso}", "name", json_string_value(json_object_get(service, "cs_name")),
@@ -116,6 +122,9 @@ json_t * parse_service_from_db(json_t * service) {
   return NULL;
 }
 
+/**
+ * Enable or disable a service
+ */
 int service_enable(struct _carleon_config * config, const char * name, const int status) {
   json_t * j_service = service_get(config, name), * j_query;
   int res;
@@ -149,6 +158,9 @@ int service_enable(struct _carleon_config * config, const char * name, const int
   }
 }
 
+/**
+ * Get the taglist of the specified element of the specified service
+ */
 json_t * service_element_get_tag(struct _carleon_config * config, const char * service, const char * element) {
   json_t * j_query = json_pack("{sss{ssss}}", "table", CARLEON_TABLE_ELEMENT, "where", "cs_name", service, "ce_name", element), * j_result, * tags;
   int res;
@@ -174,6 +186,9 @@ json_t * service_element_get_tag(struct _carleon_config * config, const char * s
   }
 }
 
+/**
+ * Add a tag to the specified element of the specified service
+ */
 int service_element_add_tag(struct _carleon_config * config, const char * service, const char * element, const char * tag) {
   json_t * tags = service_element_get_tag(config, service, element), 
          * j_query = json_pack("{sss{ss}}", 
@@ -240,6 +255,9 @@ int service_element_add_tag(struct _carleon_config * config, const char * servic
   }
 }
 
+/**
+ * Remove the specified tag from the specified element of the specified service
+ */
 int service_element_remove_tag(struct _carleon_config * config, const char * service, const char * element, const char * tag) {
   json_t * tags = service_element_get_tag(config, service, element), * j_query = NULL, * j_service = service_get(config, service);
   int index, res;
@@ -282,6 +300,9 @@ int service_element_remove_tag(struct _carleon_config * config, const char * ser
   }
 }
 
+/**
+ * Clean all data of the specified element of the specified service
+ */
 int service_element_cleanup(struct _carleon_config * config, const char * service, const char * element) {
   json_t * j_query = json_pack("{sss{ssss}}", 
                       "table", CARLEON_TABLE_ELEMENT, 
@@ -304,6 +325,9 @@ int service_element_cleanup(struct _carleon_config * config, const char * servic
   }
 }
 
+/**
+ * Execute the specified command on the specified element of the specified service with the specified parameters
+ */
 json_t * service_exec(struct _carleon_config * config, struct _carleon_service * service, const char * command, const char * element, json_t * parameters) {
   if (config != NULL && service != NULL && command != NULL) {
     return service->c_service_exec(config, command, element, parameters);

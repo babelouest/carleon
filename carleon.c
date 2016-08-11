@@ -25,6 +25,9 @@
 
 #include "carleon.h"
 
+/**
+ * Initializes carleon endpoints and services
+ */
 int init_carleon(struct _u_instance * instance, const char * url_prefix, struct _carleon_config * config) {
   if (instance != NULL && url_prefix != NULL && config != NULL) {
     
@@ -47,6 +50,9 @@ int init_carleon(struct _u_instance * instance, const char * url_prefix, struct 
   }
 }
 
+/**
+ * Closes carleon endpoints and all services
+ */
 int close_carleon(struct _u_instance * instance, const char * url_prefix, struct _carleon_config * config) {
   if (instance != NULL) {
     ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/service/");
@@ -68,6 +74,9 @@ int close_carleon(struct _u_instance * instance, const char * url_prefix, struct
   }
 }
 
+/**
+ * Initializes the services available
+ */
 int init_service_list(struct _u_instance * instance, const char * url_prefix, struct _carleon_config * config) {
   json_t * j_query, * j_result, * service_handshake, * service_list, * service;
   DIR * services_directory;
@@ -250,6 +259,9 @@ int init_service_list(struct _u_instance * instance, const char * url_prefix, st
   }
 }
 
+/**
+ * Return the struct _carleon_service * specified by its name
+ */
 struct _carleon_service * get_service_from_name(struct _carleon_config * config, const char * name) {
   int i;
   
@@ -266,11 +278,17 @@ struct _carleon_service * get_service_from_name(struct _carleon_config * config,
   return NULL;
 }
 
+/**
+ * Clean carleon variables
+ */
 void clean_carleon(struct _carleon_config * config) {
   free(config->services_path);
   free(config);
 }
 
+/**
+ * Closes all the services
+ */
 int close_service_list(struct _carleon_config * config, struct _u_instance * instance, const char * url_prefix) {
   int i;
   
@@ -286,6 +304,9 @@ int close_service_list(struct _carleon_config * config, struct _u_instance * ins
   }
 }
 
+/**
+ * Closes the specified service
+ */
 void close_service(struct _carleon_service * service, struct _u_instance * instance, const char * url_prefix) {
   json_t * j_result = service->c_service_close(instance, url_prefix);
   
@@ -299,6 +320,9 @@ void close_service(struct _carleon_service * service, struct _u_instance * insta
   free(service->description);
 }
 
+/**
+ * Endpoint functions
+ */
 int callback_carleon_service_get (const struct _u_request * request, struct _u_response * response, void * user_data) {
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error, user_data is NULL");
