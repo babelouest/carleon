@@ -37,10 +37,10 @@ service-mock.o: service-mock.c
 	$(CC) $(CFLAGS) service-mock.c
 
 libservicemotion.so: service-motion.o
-	$(CC) -shared -Wl,-soname,libservicemotion.so -o libservicemotion.so service-motion.o $(LIBS) `pkg-config --libs MagickCore` -lpthread
+	$(CC) -shared -Wl,-soname,libservicemotion.so -o libservicemotion.so service-motion.o $(LIBS) -lpthread
 
 service-motion.o: service-motion.c
-	$(CC) `pkg-config --cflags MagickCore` $(CFLAGS) service-motion.c
+	$(CC) $(CFLAGS) service-motion.c
 
 libservicempd.so: service-mpd.o
 	$(CC) -shared -Wl,-soname,libservicempd.so -o libservicempd.so service-mpd.o $(LIBS) -lmpdclient -L/usr/local/lib
@@ -67,7 +67,7 @@ test-motion: ADDITIONALFLAGS=-DDEBUG -g -O0
 
 test-motion: test-service.c service-motion.o
 	$(CC) $(CFLAGS) test-service.c
-	$(CC) test-service.o service-motion.o -o test-motion -lpthread -ljansson -lyder -lorcania -lulfius -lhoel `pkg-config --libs MagickCore`
+	$(CC) test-service.o service-motion.o -o test-motion -lpthread -ljansson -lyder -lorcania -lulfius -lhoel
 	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all ./test-motion 2>valgrind.txt
 
 test-mpd: ADDITIONALFLAGS=-DDEBUG -g -O0

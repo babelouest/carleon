@@ -23,7 +23,6 @@
 #include <ulfius.h>
 #include <orcania.h>
 #include <yder.h>
-#include <magick/MagickCore.h>
 #include "../carleon.h"
 
 #define MAXBUFFER 128*128 // Limit of the buffer set to 128 KB (per stream)
@@ -677,7 +676,7 @@ int is_motion_online(struct _carleon_config * config, json_t * service_motion) {
 * - files available in the lists, you can specify count and offset in the url
 * - name of the stream availables
 */
-int callback_service_motion_status (const struct _u_request * request, struct _u_response * response, void * user_data) {
+ int callback_service_motion_status (const struct _u_request * request, struct _u_response * response, void * user_data) {
   json_t * service_motion = service_motion_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "name"));
   json_t * to_return, * list_object, * list;
   int res;
@@ -761,7 +760,7 @@ void * get_file(const char * full_path, size_t * len) {
 
 /**
  * Return an tumbnail of the specified image
- */
+ 
 void * get_thumbnail(const char * full_path, const char * thumbnail_path, size_t * len) {
   void * blob = NULL;
   ExceptionInfo
@@ -776,9 +775,6 @@ void * get_thumbnail(const char * full_path, const char * thumbnail_path, size_t
   ImageInfo
     *image_info;
 
-  /*
-    Initialize the image info structure and read an image.
-  */
   exception = AcquireExceptionInfo();
   image_info = CloneImageInfo((ImageInfo *) NULL);
   (void) strcpy(image_info->filename, full_path);
@@ -789,9 +785,7 @@ void * get_thumbnail(const char * full_path, const char * thumbnail_path, size_t
   if (images == (Image *) NULL) {
     return NULL;
 	}
-  /*
-    Convert the image to a thumbnail.
-  */
+
   thumbnails = NewImageList();
   while ((image = RemoveFirstImageFromList(&images)) != (Image *) NULL) {
     resize_image = AdaptiveResizeImage(image, 160, 120, exception);
@@ -808,14 +802,12 @@ void * get_thumbnail(const char * full_path, const char * thumbnail_path, size_t
 	}
   
   blob = ImagesToBlob(image_info, thumbnails, len, exception);
-  /*
-    Destroy the image thumbnail and return blob.
-  */
+
   thumbnails = DestroyImageList(thumbnails);
   image_info = DestroyImageInfo(image_info);
   exception = DestroyExceptionInfo(exception);
   return blob;
-}
+}*/
 
 /**
  * Callback function to get an image from a motion service
@@ -844,11 +836,8 @@ int callback_service_motion_image (const struct _u_request * request, struct _u_
 							response->status = 500;
 						}
 					} else {
-						response->binary_body = get_thumbnail(full_path, thumbnail_path, &(response->binary_body_length));
-						if (response->binary_body == NULL) {
-							y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_motion_status - Error generating content for thumbnail file %s", full_path);
-							response->status = 500;
-						}
+						response->status = 404;
+						response->json_body = json_pack("{ss}", "result", "Image not found");
 					}
 					free(thumbnail_path);
 				} else {
@@ -871,224 +860,6 @@ int callback_service_motion_image (const struct _u_request * request, struct _u_
 		response->status = 500;
   }
   json_decref(service_motion);
-  return U_OK;
-}
-
-/**
- * Buffer structure used as a data cache
- * between the http request to the camera stream, 
- * and the http response to the client
- */
-struct stream_buffer {
-	pthread_mutex_t lock;
-	char * stream_url;
-	size_t size;
-	void * data;
-	int client_used;
-	int server_used;
-};
-
-void close_buffer(struct stream_buffer ** buffer) {
-	y_log_message(Y_LOG_LEVEL_DEBUG, "Closing buffer");
-	if (*buffer != NULL && !(*buffer)->client_used && !(*buffer)->server_used) {
-		free((*buffer)->stream_url);
-		free((*buffer)->data);
-		(*buffer)->stream_url = NULL;
-		(*buffer)->data = NULL;
-		pthread_mutex_destroy(&(*buffer)->lock);
-		free((*buffer));
-		*buffer = NULL;
-		free(buffer);
-	}
-}
-
-/**
- * get stream data from the camera stream, and add it at the end of the buffer
- */
-size_t write_distant_body(void * contents, size_t size, size_t nmemb, void * user_data) {
-	struct stream_buffer ** buffer = (struct stream_buffer **)user_data;
-	size_t res = size * nmemb;
-
-	if ((*buffer) != NULL && (*buffer)->server_used) {
-		usleep(50);
-		if (!pthread_mutex_lock(&(*buffer)->lock)) {
-			// Test if the buffer is still in the limit
-			if ((size * nmemb) + (*buffer)->size + 1 < MAXBUFFER) {
-				void * new_data = malloc((size * nmemb) + (*buffer)->size + 1);
-				if (new_data != NULL) {
-					if ((*buffer)->data != NULL) {
-						memcpy(new_data, (*buffer)->data, (*buffer)->size);
-					}
-					memcpy(new_data + (*buffer)->size, contents, (size * nmemb));
-					free((*buffer)->data);
-					(*buffer)->data = new_data;
-					(*buffer)->size += (size * nmemb);
-					//y_log_message(Y_LOG_LEVEL_DEBUG, "write buffer size %ld, now %ld", (size * nmemb), (*buffer)->size);
-				} else {
-					y_log_message(Y_LOG_LEVEL_ERROR, "write_distant_body - Error allocating resources for new_data");
-					(*buffer)->client_used = 0;
-					res = 0;
-				}
-			}
-		}
-		pthread_mutex_unlock(&(*buffer)->lock);
-	} else {
-		(*buffer)->client_used = 0;
-		res = 0;
-	}
-	return res;
-}
-
-/**
- * send stream data from the buffer to the client
- */
-ssize_t stream_data (void * cls, uint64_t pos, char * buf, size_t max) {
-	struct stream_buffer ** buffer = (struct stream_buffer **)cls;
-	ssize_t res = ULFIUS_STREAM_END;
-	
-	if ((*buffer) != NULL && (*buffer)->client_used) {
-		usleep(50);
-		if (!pthread_mutex_lock(&(*buffer)->lock)) {
-			size_t len = ((*buffer)->size > max)?max:(*buffer)->size;
-			void * new_data = NULL;
-			
-			if (len > 0 && (*buffer)->size > 0) {
-				memcpy(buf, (*buffer)->data, len);
-				if ((*buffer)->size < len) {
-					len = (*buffer)->size;
-					free((*buffer)->data);
-					(*buffer)->data = NULL;
-					(*buffer)->size = 0;
-					res = len;
-				} else {
-					new_data = malloc((*buffer)->size - len + 1);
-					if (new_data != NULL) {
-						memcpy(new_data, (*buffer)->data + len, (*buffer)->size - len);
-						free((*buffer)->data);
-						(*buffer)->data = new_data;
-						(*buffer)->size -= len;
-						res = len;
-					} else {
-						y_log_message(Y_LOG_LEVEL_ERROR, "stream_data - Error allocating memory for new_data");
-					}
-				}
-				//y_log_message(Y_LOG_LEVEL_DEBUG, "stream_data now buffer size %ld", (*buffer)->size);
-			} else {
-				res = 0;
-			}
-		}
-		pthread_mutex_unlock(&(*buffer)->lock);
-	}
-	return res;
-}
-
-/**
- * Free the stream_buffer at the end of a connexion
- */
-void free_stream_data(void * cls) {
-	struct stream_buffer ** buffer = (struct stream_buffer **)cls;
-	
-	if ((*buffer) != NULL) {
-		if (!pthread_mutex_lock(&(*buffer)->lock)) {
-			//y_log_message(Y_LOG_LEVEL_DEBUG, "free_stream_data - closing buffer");
-			(*buffer)->server_used = 0;
-			close_buffer(buffer);
-		}
-	}
-}
-
-/**
- * Run the http request to the camera stream in a distinct thread
- */
-void * thread_stream_run(void * args) {
-	struct stream_buffer ** buffer = (struct stream_buffer **)args;
-	int res;
-	struct _u_request request;
-	struct _u_response response;
-	
-	if ((*buffer) != NULL) {
-		ulfius_init_request(&request);
-		ulfius_init_response(&response);
-		request.http_url = nstrdup((*buffer)->stream_url);
-		res = ulfius_send_http_streaming_request(&request, &response, write_distant_body, buffer);
-		if (res != U_OK) {
-			//y_log_message(Y_LOG_LEVEL_DEBUG, "thread_stream_run - closing buffer");
-		}
-		(*buffer)->client_used = 0;
-		close_buffer(buffer);
-		ulfius_clean_request(&request);
-		ulfius_clean_response(&response);
-	} else {
-		y_log_message(Y_LOG_LEVEL_ERROR, "thread_stream_run - Error input data");
-	}
-	
-	return NULL;
-}
-
-/**
- * Callback function used to proxify the stream from the camera to the client
- */
-int callback_service_motion_stream (const struct _u_request * request, struct _u_response * response, void * user_data) {
-	json_t * service_motion = service_motion_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "name")), * element, * stream = NULL;
-	size_t index;
-	struct stream_buffer ** buffer;
-	pthread_t thread_stream;
-	int thread_stream_ret = 0, thread_stream_detach = 0;
-	pthread_mutexattr_t mutexattr;
-	
-  if (service_motion != NULL && json_integer_value(json_object_get(service_motion, "result")) == WEBSERVICE_RESULT_OK) {
-		// Get online status
-		json_array_foreach(json_object_get(json_object_get(service_motion, "element"), "stream_list"), index, element) {
-			if (0 == strcmp(json_string_value(json_object_get(element, "name")), u_map_get(request->map_url, "stream_name"))) {
-				stream = element;
-			}
-		}
-		if (stream != NULL) {
-			buffer = malloc(sizeof(struct stream_buffer *));
-			if (buffer!=NULL) {
-				(*buffer) = malloc(sizeof(struct stream_buffer));
-			}
-			if (buffer != NULL && *buffer != NULL) {
-				(*buffer)->data = NULL;
-				(*buffer)->size = 0;
-				(*buffer)->client_used = 1;
-				(*buffer)->server_used = 1;
-				(*buffer)->stream_url = nstrdup(json_string_value(json_object_get(stream, "uri")));
-				u_map_put(response->map_header, "Content-Type", "multipart/x-mixed-replace; boundary=--BoundaryString");
-				u_map_put(response->map_header, "Pragma", "no-cache");
-				u_map_put(response->map_header, "Cache-Control", "no-cache, private");
-				u_map_put(response->map_header, "Expires", "0");
-				u_map_put(response->map_header, "Max-Age", "0");
-				pthread_mutexattr_init ( &mutexattr );
-				pthread_mutexattr_settype( &mutexattr, PTHREAD_MUTEX_RECURSIVE_NP );
-				if (pthread_mutex_init(&(*buffer)->lock, &mutexattr) != 0) {
-					y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_motion_stream - pthread_mutex_init error");
-				} else {
-					//y_log_message(Y_LOG_LEVEL_DEBUG, "accessing %s", (*buffer)->stream_url);
-					
-					thread_stream_ret = pthread_create(&thread_stream, NULL, thread_stream_run, (void *)buffer);
-					thread_stream_detach = pthread_detach(thread_stream);
-					if (thread_stream_ret || thread_stream_detach) {
-						y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_motion_stream - Error creating or detaching event thread, return code: %d, detach code: %d",
-												thread_stream_ret, thread_stream_detach);
-						response->status = 500;
-					}
-					
-					ulfius_set_stream_response(response, 200, stream_data, free_stream_data, -1, 32 * 1024, buffer);
-					json_decref(service_motion);
-					return U_OK;
-				}
-			} else {
-				y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_motion_stream - error allocating resources for buffer");
-				response->status = 500;
-			}
-		} else {
-			response->status = 404;
-		}
-	} else {
-		response->status = 500;
-	}
-	json_decref(service_motion);
   return U_OK;
 }
 
@@ -1149,63 +920,6 @@ int callback_service_motion_snapshot (const struct _u_request * request, struct 
 }
 
 /**
- * Service specific authentication callback function
- * The token must be the last 12 characters of the authentication token used in the header
- */
-#define ANGHARAD_TABLE_SESSION "a_session"
-int callback_auth_images (const struct _u_request * request, struct _u_response * response, void * user_data) {
-	char * session_id;
-	json_t * j_query, * j_result;
-	int res;
-	
-	if (u_map_get(request->map_url, "ANGHARAD_SESSION_ID") != NULL && strlen (u_map_get(request->map_url, "ANGHARAD_SESSION_ID")) == 17) {
-		session_id = msprintf("%%%s", u_map_get(request->map_url, "ANGHARAD_SESSION_ID"));
-		j_query = json_pack("{sss[s]s{s{ssss}sis{ssss}}}",
-													"table",
-													ANGHARAD_TABLE_SESSION,
-													"columns",
-														"UNIX_TIMESTAMP(ass_validity) AS validity",
-													"where",
-														"ass_session_token",
-															"operator",
-															"LIKE",
-															"value",
-															session_id,
-														"ass_enabled",
-														1,
-														"ass_validity",
-															"operator",
-															"raw",
-															"value",
-															">= NOW()");
-		
-		free(session_id);
-		if (j_query != NULL) {
-			res = h_select(((struct _carleon_config *)user_data)->conn, j_query, &j_result, NULL);
-			json_decref(j_query);
-			if (res == H_OK) {
-				if (json_is_array(j_result) && json_array_size(j_result) > 0) {
-					json_decref(j_result);
-					return U_OK;
-				} else {
-					y_log_message(Y_LOG_LEVEL_DEBUG, "Unauthorized");
-					json_decref(j_result);
-					return U_ERROR_UNAUTHORIZED;
-				}
-			} else {
-				y_log_message(Y_LOG_LEVEL_ERROR, "callback_auth_images - Error executing h_select");
-				return U_ERROR;
-			}
-		} else {
-			y_log_message(Y_LOG_LEVEL_ERROR, "callback_auth_images - Error allocating resources for j_query");
-			return U_ERROR;
-		}
-	} else {
-		return U_ERROR_UNAUTHORIZED;
-	}
-}
-
-/**
  * Initialize the motion service
  */
 json_t * c_service_init(struct _u_instance * instance, const char * url_prefix, struct _carleon_config * config) {
@@ -1217,15 +931,14 @@ json_t * c_service_init(struct _u_instance * instance, const char * url_prefix, 
     ulfius_add_endpoint_by_val(instance, "DELETE", url_prefix, "/service-motion/@name", NULL, NULL, NULL, &callback_service_motion_remove, (void*)config);
 
     ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/service-motion/@name/status", NULL, NULL, NULL, &callback_service_motion_status, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/service-motion/@name/image/@file_list/@file_name", callback_auth_images, (void*)config, NULL, &callback_service_motion_image, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/service-motion/@name/stream/@stream_name", callback_auth_images, (void*)config, NULL, &callback_service_motion_stream, (void*)config);
+    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/service-motion/@name/image/@file_list/@file_name", NULL, NULL, NULL, &callback_service_motion_image, (void*)config);
     ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/service-motion/@name/stream/@stream_name/snapshot", NULL, NULL, NULL, &callback_service_motion_snapshot, (void*)config);
 
     return json_pack("{sissss}", 
                       "result", WEBSERVICE_RESULT_OK,
                       "name", "service-motion",
                       "description", "Motion service for camera management");
-		MagickCoreGenesis("service-motion", MagickTrue);
+		//MagickCoreGenesis("service-motion", MagickTrue);
   } else {
     return json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
   }
@@ -1244,10 +957,9 @@ json_t * c_service_close(struct _u_instance * instance, const char * url_prefix)
 
     ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/service-motion/@name/status");
     ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/service-motion/@name/image/@image_list/@image_file");
-    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/service-motion/@name/stream/@stream_name");
     ulfius_remove_endpoint_by_val(instance, "PUT", url_prefix, "/service-motion/@name/stream/@stream_name/snapshot");
 
-		MagickCoreTerminus();
+		//MagickCoreTerminus();
 		
     return json_pack("{si}", "result", WEBSERVICE_RESULT_OK);
   } else {

@@ -57,6 +57,13 @@ int callback_test_exec (const struct _u_request * request, struct _u_response * 
   return U_OK;
 }
 
+int callback_options (const struct _u_request * request, struct _u_response * response, void * user_data) {
+  u_map_put(response->map_header, "Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  u_map_put(response->map_header, "Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, ANGHARAD_SESSION_ID");
+  u_map_put(response->map_header, "Access-Control-Max-Age", "1800");
+  return U_OK;
+}
+
 int main(int argc, char ** argv) {
   // Initialize the instance
   struct _u_instance instance;
@@ -84,6 +91,8 @@ int main(int argc, char ** argv) {
   ulfius_add_endpoint_by_val(&instance, "GET", PREFIX, "/elements/", NULL, NULL, NULL, &callback_test_elements, &config);
   ulfius_add_endpoint_by_val(&instance, "POST", PREFIX, "/exec/@element/@command", NULL, NULL, NULL, &callback_test_exec, &config);
   
+  ulfius_add_endpoint_by_val(&instance, "OPTIONS", NULL, "*", NULL, NULL, NULL, &callback_options, &config);
+
   j_res = c_service_init(&instance, PREFIX, &config);
   
   if (j_res != NULL) {
