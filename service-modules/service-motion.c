@@ -740,6 +740,7 @@ int is_motion_online(struct _carleon_config * config, json_t * service_motion) {
 void * get_file(const char * full_path, size_t * len) {
 	void * buffer = NULL;
 	FILE * f;
+	size_t res;
 	
 	if (full_path != NULL && len != NULL) {
 		f = fopen (full_path, "rb");
@@ -750,7 +751,10 @@ void * get_file(const char * full_path, size_t * len) {
 			fseek (f, 0, SEEK_SET);
 			buffer = malloc(*len*sizeof(void));
 			if (buffer) {
-				fread (buffer, 1, *len, f);
+				res = fread (buffer, 1, *len, f);
+				if (res != *len) {
+					y_log_message(Y_LOG_LEVEL_WARNING, "get_file - fread warning, reading %ld while expecting %ld", res, *len);
+				}
 			}
 			fclose (f);
 		}
