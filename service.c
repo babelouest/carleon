@@ -39,9 +39,9 @@ json_t * service_get(struct _carleon_config * config, const char * name) {
   }
   
   if (name == NULL) {
-    j_query = json_pack("{ss}", "table", CARLEON_TABLE_SERVICE);
+    j_query = json_pack("{sss{si}}", "table", CARLEON_TABLE_SERVICE, "where", "cs_enabled", 1);
   } else {
-    j_query = json_pack("{sss{ss}}", "table", CARLEON_TABLE_SERVICE, "where", "cs_name", name);
+    j_query = json_pack("{sss{sssi}}", "table", CARLEON_TABLE_SERVICE, "where", "cs_name", name, "cs_enabled", 1);
   }
   
   if (j_query == NULL) {
