@@ -41,15 +41,14 @@
  * get the specified mpd or all mpd
  */
 json_t * mpd_get(struct _carleon_config * config, const char * mpd_name) {
-  json_t * j_query = json_pack("{sss[sssss]}", 
+  json_t * j_query = json_pack("{sss[ssss]}", 
                     "table", 
                       MPD_TABLE_NAME,
                     "columns",
                       "cmpd_name AS name",
                       "cmpd_description AS description",
                       "cmpd_host AS host",
-                      "cmpd_port AS port",
-                      "cmpd_password AS password"
+                      "cmpd_port AS port"
                     ), * j_result, * to_return;
   int res;
   
@@ -752,6 +751,10 @@ int callback_service_mpd_volume_set (const struct _u_request * request, struct _
         volume = strtol(u_map_get(request->map_url, "volume"), &ptr, 10);
         if (ptr == u_map_get(request->map_url, "volume")) {
           response->status = 400;
+          response->json_body = json_pack("{ss}", "error", "Volume invalid");
+        } else if (volume < 0 || volume > 100) {
+          response->status = 400;
+          response->json_body = json_pack("{ss}", "error", "Volume invalid");
         } else {
           result = mpd_set_volume((struct _carleon_config *)user_data, json_object_get(mpd, "element"), volume);
           if (result == NULL || json_integer_value(json_object_get(result, "result")) != WEBSERVICE_RESULT_OK) {
