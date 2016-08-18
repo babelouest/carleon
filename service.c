@@ -203,6 +203,10 @@ int service_element_add_tag(struct _carleon_config * config, const char * servic
     json_decref(tags);
     json_decref(j_query);
     return C_ERROR_NOT_FOUND;
+  } else if (json_array_size(tags) >= 128) {
+    json_decref(tags);
+    json_decref(j_query);
+    return C_ERROR_PARAM;
   } else if (j_query != NULL) {
     json_decref(j_service);
     res = h_select(config->conn, j_query, &j_result, NULL);
@@ -223,7 +227,7 @@ int service_element_add_tag(struct _carleon_config * config, const char * servic
                             "set",
                               "ce_tag", str_tags,
                             "where", 
-							  "cs_name", service, 
+                            "cs_name", service, 
                               "ce_name", element);
       }
       free(str_tags);
