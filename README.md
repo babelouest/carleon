@@ -132,3 +132,9 @@ Check the log messages in the log file, syslog or the console, depending on your
 ```log
 yyyy-mm-dd hh:mm:ss - Carleon INFO: Start carleon on port 2756
 ```
+
+# API Documentation
+
+The full API Documentation can be found in the file `API.md`:
+
+- [Carleon API](API.md)

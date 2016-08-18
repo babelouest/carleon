@@ -142,3 +142,11 @@ json_t * c_service_element_get_list(struct _carleon_config * config);
  */
 json_t * c_service_exec(struct _carleon_config * config, const char * command, const char * element, json_t * parameters);
 ```
+
+## Services API
+
+Each service implement its own API. The current documentation can be fund here:
+
+- [mock service API](API.mock.md)
+- [motion service API](API.motion.md)
+- [mpd service API](API.mpd.md)
