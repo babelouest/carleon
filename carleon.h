@@ -64,6 +64,8 @@ struct _carleon_config {
   struct _h_connection    * conn;
   struct _carleon_service * service_list;
   char                    * alert_url;
+  char                    * url_prefix;
+  struct _u_instance      * instance;
 };
 
 /**
@@ -77,20 +79,21 @@ struct _carleon_service {
   char   * description;
   
   // dl files functions available
-  json_t * (* c_service_init) (struct _u_instance * instance, const char * url_prefix, struct _carleon_config * config);
-  json_t * (* c_service_close) (struct _u_instance * instance, const char * url_prefix);
+  json_t * (* c_service_init) (struct _carleon_config * config);
+  json_t * (* c_service_close) (struct _carleon_config * config);
   json_t * (* c_service_command_get_list) (struct _carleon_config * config);
   json_t * (* c_service_element_get_list) (struct _carleon_config * config);
   json_t * (* c_service_exec) (struct _carleon_config * config, const char * command, const char * element, json_t * parameters);
 };
 
 // carleon core functions
-int init_carleon(struct _u_instance * instance, const char * url_prefix, struct _carleon_config * config);
-int close_carleon(struct _u_instance * instance, const char * url_prefix, struct _carleon_config * config);
+int init_carleon(struct _carleon_config * config);
+int close_carleon(struct _carleon_config * config);
 void clean_carleon(struct _carleon_config * config);
-int init_service_list(struct _u_instance * instance, const char * url_prefix, struct _carleon_config * config);
-int close_service_list(struct _carleon_config * config, struct _u_instance * instance, const char * url_prefix);
-void close_service(struct _carleon_service * service, struct _u_instance * instance, const char * url_prefix);
+int init_service_list(struct _carleon_config * config);
+int close_service_list(struct _carleon_config * config);
+void close_service(struct _carleon_service * service, struct _carleon_config * config);
+int connect_enabled_services(struct _carleon_config * config);
 int disconnect_all_services(struct _carleon_config * config);
 
 // services core functions
@@ -108,6 +111,7 @@ int service_element_remove_tag(struct _carleon_config * config, const char * ser
 
 // Services callback functions
 int callback_carleon_service_get (const struct _u_request * request, struct _u_response * response, void * user_data);
+int callback_carleon_service_reload (const struct _u_request * request, struct _u_response * response, void * user_data);
 int callback_carleon_service_enable (const struct _u_request * request, struct _u_response * response, void * user_data);
 int callback_carleon_service_element_cleanup (const struct _u_request * request, struct _u_response * response, void * user_data);
 int callback_carleon_service_element_add_tag (const struct _u_request * request, struct _u_response * response, void * user_data);

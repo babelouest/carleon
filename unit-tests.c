@@ -107,6 +107,18 @@ int test_request_status(struct _u_request * req, long int expected_status, json_
   return to_return;
 }
 
+void run_simple_test(const char * method, const char * url, json_t * request_body, int expected_status, json_t * expected_body) {
+  struct _u_request request;
+  ulfius_init_request(&request);
+  request.http_verb = strdup(method);
+  request.http_url = strdup(url);
+  request.json_body = json_copy(request_body);
+  
+  test_request_status(&request, expected_status, expected_body);
+  
+  ulfius_clean_request(&request);
+}
+
 void run_service_tests() {
   json_t * mock_valid1 = json_loads("{\
     \"name\":\"mock1\",\
@@ -145,55 +157,30 @@ void run_service_tests() {
     ]\
   }", JSON_DECODE_ANY, NULL);
   
-  struct _u_request req_list[] = {
-    {"GET", SERVER_URL_PREFIX "/service/", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"PUT", SERVER_URL_PREFIX "/service/mock-service/enable/0", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"PUT", SERVER_URL_PREFIX "/service/mock-service/enable/1", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"GET", SERVER_URL_PREFIX "/mock-service/", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"POST", SERVER_URL_PREFIX "/mock-service/", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, mock_valid1, NULL, 0, NULL, 0}, // 200
-    {"POST", SERVER_URL_PREFIX "/mock-service/", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, mock_valid2, NULL, 0, NULL, 0}, // 200
-    {"GET", SERVER_URL_PREFIX "/mock-service/mock1", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"GET", SERVER_URL_PREFIX "/mock-service/mock2", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"GET", SERVER_URL_PREFIX "/mock-service/mock3", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 404
-    {"PUT", SERVER_URL_PREFIX "/mock-service/mock2", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, mock_valid3, NULL, 0, NULL, 0}, // 200
-    {"GET", SERVER_URL_PREFIX "/mock-service/mock2", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"PUT", SERVER_URL_PREFIX "/service/mock-service/mock1/tag1", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"PUT", SERVER_URL_PREFIX "/service/mock-service/mock1/tag2", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"PUT", SERVER_URL_PREFIX "/service/mock-service/mock2/tag1", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"PUT", SERVER_URL_PREFIX "/service/mock-service/mock2/tag1", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"GET", SERVER_URL_PREFIX "/service/", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"GET", SERVER_URL_PREFIX "/service/", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"DELETE", SERVER_URL_PREFIX "/service/mock-service/mock2/tag1", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"GET", SERVER_URL_PREFIX "/service/", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"DELETE", SERVER_URL_PREFIX "/mock-service/mock1", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"DELETE", SERVER_URL_PREFIX "/mock-service/mock2", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"PUT", SERVER_URL_PREFIX "/service/mock-service/mock1/cleanup", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-    {"PUT", SERVER_URL_PREFIX "/service/mock-service/mock2/cleanup", 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0}, // 200
-  };
-
-  test_request_status(&req_list[0], 200, NULL);
-  test_request_status(&req_list[1], 200, NULL);
-  test_request_status(&req_list[2], 200, NULL);
-  test_request_status(&req_list[3], 200, NULL);
-  test_request_status(&req_list[4], 200, NULL);
-  test_request_status(&req_list[5], 200, NULL);
-  test_request_status(&req_list[6], 200, mock_valid1);
-  test_request_status(&req_list[7], 200, mock_valid2);
-  test_request_status(&req_list[8], 404, NULL);
-  test_request_status(&req_list[9], 200, NULL);
-  test_request_status(&req_list[10], 200, mock_valid3);
-  test_request_status(&req_list[11], 200, NULL);
-  test_request_status(&req_list[12], 200, NULL);
-  test_request_status(&req_list[13], 200, NULL);
-  test_request_status(&req_list[14], 200, NULL);
-  test_request_status(&req_list[15], 200, mock1_check);
-  test_request_status(&req_list[16], 200, mock2_check1);
-  test_request_status(&req_list[17], 200, NULL);
-  test_request_status(&req_list[18], 200, mock2_check2);
-  test_request_status(&req_list[19], 200, NULL);
-  test_request_status(&req_list[20], 200, NULL);
-  test_request_status(&req_list[21], 200, NULL);
-  test_request_status(&req_list[22], 200, NULL);
+  run_simple_test("GET", SERVER_URL_PREFIX "/service/", NULL, 200, NULL);
+  run_simple_test("PUT", SERVER_URL_PREFIX "/service/reload", NULL, 200, NULL);
+  run_simple_test("PUT", SERVER_URL_PREFIX "/service/mock-service/enable/0", NULL, 200, NULL);
+  run_simple_test("PUT", SERVER_URL_PREFIX "/service/mock-service/enable/1", NULL, 200, NULL);
+  run_simple_test("GET", SERVER_URL_PREFIX "/mock-service/", NULL, 200, NULL);
+  run_simple_test("POST", SERVER_URL_PREFIX "/mock-service/", mock_valid1, 200, NULL);
+  run_simple_test("POST", SERVER_URL_PREFIX "/mock-service/", mock_valid2, 200, NULL);
+  run_simple_test("GET", SERVER_URL_PREFIX "/mock-service/mock1", NULL, 200, mock_valid1);
+  run_simple_test("GET", SERVER_URL_PREFIX "/mock-service/mock2", NULL, 200, mock_valid2);
+  run_simple_test("GET", SERVER_URL_PREFIX "/mock-service/mock3", NULL, 404, NULL);
+  run_simple_test("PUT", SERVER_URL_PREFIX "/mock-service/mock2", mock_valid3, 200, NULL);
+  run_simple_test("GET", SERVER_URL_PREFIX "/mock-service/mock2", NULL, 200, mock_valid3);
+  run_simple_test("PUT", SERVER_URL_PREFIX "/service/mock-service/mock1/tag1", NULL, 200, NULL);
+  run_simple_test("PUT", SERVER_URL_PREFIX "/service/mock-service/mock1/tag2", NULL, 200, NULL);
+  run_simple_test("PUT", SERVER_URL_PREFIX "/service/mock-service/mock2/tag1", NULL, 200, NULL);
+  run_simple_test("PUT", SERVER_URL_PREFIX "/service/mock-service/mock2/tag1", NULL, 200, NULL);
+  run_simple_test("GET", SERVER_URL_PREFIX "/service/", NULL, 200, mock1_check);
+  run_simple_test("GET", SERVER_URL_PREFIX "/service/", NULL, 200, mock2_check1);
+  run_simple_test("DELETE", SERVER_URL_PREFIX "/service/mock-service/mock2/tag1", NULL, 200, NULL);
+  run_simple_test("GET", SERVER_URL_PREFIX "/service/", NULL, 200, mock2_check2);
+  run_simple_test("DELETE", SERVER_URL_PREFIX "/mock-service/mock1", NULL, 200, NULL);
+  run_simple_test("DELETE", SERVER_URL_PREFIX "/mock-service/mock2", NULL, 200, NULL);
+  run_simple_test("PUT", SERVER_URL_PREFIX "/service/mock-service/mock1/cleanup", NULL, 200, NULL);
+  run_simple_test("PUT", SERVER_URL_PREFIX "/service/mock-service/mock2/cleanup", NULL, 200, NULL);
   
   json_decref(mock_valid1);
   json_decref(mock_valid2);

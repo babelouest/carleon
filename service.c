@@ -38,10 +38,10 @@ json_t * service_get(struct _carleon_config * config, const char * name) {
     return NULL;
   }
   
-  if (name == NULL) {
-    j_query = json_pack("{sss{si}}", "table", CARLEON_TABLE_SERVICE, "where", "cs_enabled", 1);
+  if (name != NULL) {
+    j_query = json_pack("{sss{ss}}", "table", CARLEON_TABLE_SERVICE, "where", "cs_name", name);
   } else {
-    j_query = json_pack("{sss{sssi}}", "table", CARLEON_TABLE_SERVICE, "where", "cs_name", name, "cs_enabled", 1);
+    j_query = json_pack("{ss}", "table", CARLEON_TABLE_SERVICE);
   }
   
   if (j_query == NULL) {
@@ -203,6 +203,10 @@ int service_element_add_tag(struct _carleon_config * config, const char * servic
     json_decref(tags);
     json_decref(j_query);
     return C_ERROR_NOT_FOUND;
+  } else if (json_object_get(j_service, "enabled") != json_true()) {
+    json_decref(tags);
+    json_decref(j_query);
+    return C_ERROR_PARAM;
   } else if (json_array_size(tags) >= 128) {
     json_decref(tags);
     json_decref(j_query);
@@ -270,6 +274,9 @@ int service_element_remove_tag(struct _carleon_config * config, const char * ser
   if (j_service == NULL) {
     json_decref(tags);
     return C_ERROR_NOT_FOUND;
+  } else if (json_object_get(j_service, "enabled") != json_true()) {
+    json_decref(tags);
+    return C_ERROR_PARAM;
   }
   
   json_decref(j_service);

@@ -218,16 +218,16 @@ int callback_mock_service (const struct _u_request * request, struct _u_response
   return U_OK;
 }
 
-json_t * c_service_init(struct _u_instance * instance, const char * url_prefix, struct _carleon_config * config) {
-  if (instance != NULL && url_prefix != NULL && config != NULL) {
-    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/mock-service/@element_id", NULL, NULL, NULL, &callback_mock_service, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/mock-service/", NULL, NULL, NULL, &callback_mock_service, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "POST", url_prefix, "/mock-service/", NULL, NULL, NULL, &callback_mock_service, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/mock-service/@element_id", NULL, NULL, NULL, &callback_mock_service, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "DELETE", url_prefix, "/mock-service/@element_id", NULL, NULL, NULL, &callback_mock_service, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/mock-service/@element_id/command/@command_name/@param1/@param2/@param3", NULL, NULL, NULL, &callback_mock_service_command, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/mock-service/@element_id/command/@command_name/@param1/", NULL, NULL, NULL, &callback_mock_service_command, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/mock-service/@element_id/command/@command_name/", NULL, NULL, NULL, &callback_mock_service_command, (void*)config);
+json_t * c_service_init(struct _carleon_config * config) {
+  if (config != NULL) {
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/mock-service/@element_id", NULL, NULL, NULL, &callback_mock_service, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/mock-service/", NULL, NULL, NULL, &callback_mock_service, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "POST", config->url_prefix, "/mock-service/", NULL, NULL, NULL, &callback_mock_service, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/mock-service/@element_id", NULL, NULL, NULL, &callback_mock_service, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "DELETE", config->url_prefix, "/mock-service/@element_id", NULL, NULL, NULL, &callback_mock_service, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/mock-service/@element_id/command/@command_name/@param1/@param2/@param3", NULL, NULL, NULL, &callback_mock_service_command, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/mock-service/@element_id/command/@command_name/@param1/", NULL, NULL, NULL, &callback_mock_service_command, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/mock-service/@element_id/command/@command_name/", NULL, NULL, NULL, &callback_mock_service_command, (void*)config);
     
     return json_pack("{sissss}", 
                       "result", WEBSERVICE_RESULT_OK,
@@ -238,16 +238,16 @@ json_t * c_service_init(struct _u_instance * instance, const char * url_prefix, 
   }
 }
 
-json_t * c_service_close(struct _u_instance * instance, const char * url_prefix) {
-  if (instance != NULL && url_prefix != NULL) {
-    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/mock-service/@element_id");
-    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/mock-service/");
-    ulfius_remove_endpoint_by_val(instance, "POST", url_prefix, "/mock-service/");
-    ulfius_remove_endpoint_by_val(instance, "PUT", url_prefix, "/mock-service/@element_id");
-    ulfius_remove_endpoint_by_val(instance, "DELETE", url_prefix, "/mock-service/@element_id");
-    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/mock-service/@element_id/command/@command_name/@param1/@param2/@param3");
-    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/mock-service/@element_id/command/@command_name/@param1/");
-    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/mock-service/@element_id/command/@command_name/");
+json_t * c_service_close(struct _carleon_config * config) {
+  if (config != NULL) {
+    ulfius_remove_endpoint_by_val(config->instance, "GET", config->url_prefix, "/mock-service/@element_id");
+    ulfius_remove_endpoint_by_val(config->instance, "GET", config->url_prefix, "/mock-service/");
+    ulfius_remove_endpoint_by_val(config->instance, "POST", config->url_prefix, "/mock-service/");
+    ulfius_remove_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/mock-service/@element_id");
+    ulfius_remove_endpoint_by_val(config->instance, "DELETE", config->url_prefix, "/mock-service/@element_id");
+    ulfius_remove_endpoint_by_val(config->instance, "GET", config->url_prefix, "/mock-service/@element_id/command/@command_name/@param1/@param2/@param3");
+    ulfius_remove_endpoint_by_val(config->instance, "GET", config->url_prefix, "/mock-service/@element_id/command/@command_name/@param1/");
+    ulfius_remove_endpoint_by_val(config->instance, "GET", config->url_prefix, "/mock-service/@element_id/command/@command_name/");
     
     return json_pack("{si}", "result", WEBSERVICE_RESULT_OK);
   } else {

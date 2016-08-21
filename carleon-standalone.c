@@ -41,11 +41,9 @@
 
 struct config_elements {
   char *                   config_file;
-  char *                   url_prefix;
   unsigned long            log_mode;
   unsigned long            log_level;
   char *                   log_file;
-  struct _u_instance     * instance;
   struct _carleon_config * c_config;
 };
 
@@ -98,8 +96,8 @@ int build_config_from_args(int argc, char ** argv, struct config_elements * conf
           break;
         case 'p':
           if (optarg != NULL) {
-            config->instance->port = strtol(optarg, NULL, 10);
-            if (config->instance->port <= 0 || config->instance->port > 65535) {
+            config->c_config->instance->port = strtol(optarg, NULL, 10);
+            if (config->c_config->instance->port <= 0 || config->c_config->instance->port > 65535) {
               fprintf(stderr, "Error!\nInvalid TCP Port number\n\tPlease specify an integer value between 1 and 65535");
               return 0;
             }
@@ -110,9 +108,9 @@ int build_config_from_args(int argc, char ** argv, struct config_elements * conf
           break;
         case 'u':
           if (optarg != NULL) {
-            config->url_prefix = nstrdup(optarg);
-            if (config->url_prefix == NULL) {
-              fprintf(stderr, "Error allocating config->url_prefix, exiting\n");
+            config->c_config->url_prefix = nstrdup(optarg);
+            if (config->c_config->url_prefix == NULL) {
+              fprintf(stderr, "Error allocating config->c_config->url_prefix, exiting\n");
               exit_server(&config, CARLEON_STOP);
             }
           } else {
@@ -239,15 +237,15 @@ void exit_server(struct config_elements ** config, int exit_value) {
   if (config != NULL && *config != NULL) {
     // Cleaning data
 
-    close_carleon((*config)->instance, (*config)->url_prefix, (*config)->c_config);
+    close_carleon((*config)->c_config);
     h_close_db((*config)->c_config->conn);
     h_clean_connection((*config)->c_config->conn);
-    ulfius_stop_framework((*config)->instance);
-    ulfius_clean_instance((*config)->instance);
+    ulfius_stop_framework((*config)->c_config->instance);
+    ulfius_clean_instance((*config)->c_config->instance);
     clean_carleon((*config)->c_config);
-    free((*config)->instance);
+    free((*config)->c_config->instance);
+    free((*config)->c_config->url_prefix);
     free((*config)->config_file);
-    free((*config)->url_prefix);
     free((*config)->log_file);
     y_close_logs();
     
@@ -285,17 +283,17 @@ int build_config_from_file(struct config_elements * config) {
     return 0;
   }
   
-  if (config->instance->port == -1) {
+  if (config->c_config->instance->port == -1) {
     // Get Port number to listen to
-    config_lookup_int(&cfg, "port", &(config->instance->port));
+    config_lookup_int(&cfg, "port", &(config->c_config->instance->port));
   }
   
-  if (config->url_prefix == NULL) {
+  if (config->c_config->url_prefix == NULL) {
     // Get prefix url
     if (config_lookup_string(&cfg, "url_prefix", &cur_prefix)) {
-      config->url_prefix = nstrdup(cur_prefix);
-      if (config->url_prefix == NULL) {
-        fprintf(stderr, "Error allocating config->url_prefix, exiting\n");
+      config->c_config->url_prefix = nstrdup(cur_prefix);
+      if (config->c_config->url_prefix == NULL) {
+        fprintf(stderr, "Error allocating config->c_config->url_prefix, exiting\n");
         config_destroy(&cfg);
         return 0;
       }
@@ -419,13 +417,13 @@ int build_config_from_file(struct config_elements * config) {
  */
 int check_config(struct config_elements * config) {
 
-  if (config->instance->port == -1) {
-    config->instance->port = CARLEON_DEFAULT_PORT;
+  if (config->c_config->instance->port == -1) {
+    config->c_config->instance->port = CARLEON_DEFAULT_PORT;
   }
   
-  if (config->url_prefix == NULL) {
-    config->url_prefix = nstrdup(CARLEON_DEFAULT_PREFIX);
-    if (config->url_prefix == NULL) {
+  if (config->c_config->url_prefix == NULL) {
+    config->c_config->url_prefix = nstrdup(CARLEON_DEFAULT_PREFIX);
+    if (config->c_config->url_prefix == NULL) {
       fprintf(stderr, "Error allocating url_prefix, exit\n");
       return 0;
     }
@@ -477,20 +475,24 @@ int main(int argc, char ** argv) {
   }
   
   config->config_file = NULL;
-  config->url_prefix = NULL;
   config->log_mode = Y_LOG_MODE_NONE;
   config->log_level = Y_LOG_LEVEL_NONE;
   config->log_file = NULL;
-  config->instance = malloc(sizeof(struct _u_instance));
   config->c_config = malloc(sizeof(struct _carleon_config));
-  if (config->instance == NULL || config->c_config == NULL) {
-    fprintf(stderr, "Memory error - config->instance || config->c_config\n");
+  if (config->c_config == NULL) {
+    fprintf(stderr, "Memory error - config->c_config\n");
     return 1;
   }
+  config->c_config->instance = malloc(sizeof(struct _u_instance));
+  if (config->c_config->instance == NULL) {
+    fprintf(stderr, "Memory error - config->instance\n");
+    return 1;
+  }
+  config->c_config->url_prefix = NULL;
   config->c_config->services_path = NULL;
   config->c_config->conn = NULL;
   config->c_config->service_list = NULL;
-  ulfius_init_instance(config->instance, -1, NULL);
+  ulfius_init_instance(config->c_config->instance, -1, NULL);
 
   // First we parse command line arguments
   if (!build_config_from_args(argc, argv, config)) {
@@ -513,26 +515,26 @@ int main(int argc, char ** argv) {
   }
   
   // Initialize carleon webservice
-  if (init_carleon(config->instance, config->url_prefix, config->c_config) != C_OK) {
+  if (init_carleon(config->c_config) != C_OK) {
     fprintf(stderr, "Error initializing carleon webservice\n");
     exit_server(&config, CARLEON_ERROR);
   }
   
   // Default endpoint
-  ulfius_set_default_endpoint(config->instance, NULL, NULL, NULL, &callback_default, (void*)config);
+  ulfius_set_default_endpoint(config->c_config->instance, NULL, NULL, NULL, &callback_default, (void*)config);
   
   // Start the webservice
-  y_log_message(Y_LOG_LEVEL_INFO, "Start carleon on port %d, prefix: %s", config->instance->port, config->url_prefix);
-  if (ulfius_start_framework(config->instance) == U_OK) {
+  y_log_message(Y_LOG_LEVEL_INFO, "Start carleon on port %d, prefix: %s", config->c_config->instance->port, config->c_config->url_prefix);
+  if (ulfius_start_framework(config->c_config->instance) == U_OK) {
     while (global_handler_variable == CARLEON_RUNNING) {
       sleep(1);
     }
   } else {
     y_log_message(Y_LOG_LEVEL_ERROR, "Error starting carleon webserver");
-    close_carleon(config->instance, config->url_prefix, config->c_config);
+    close_carleon(config->c_config);
     exit_server(&config, CARLEON_ERROR);
   }
-  close_carleon(config->instance, config->url_prefix, config->c_config);
+  close_carleon(config->c_config);
   exit_server(&config, CARLEON_STOP);
   return 0;
 }

@@ -12,7 +12,18 @@
  * 
  * Copyright 2016 Nicolas Mora <mail@babelouest.org>
  *
- * Licence GPL V3
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU GENERAL PUBLIC LICENSE
+ * License as published by the Free Software Foundation;
+ * version 3 of the License.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU GENERAL PUBLIC LICENSE for more details.
+ *
+ * You should have received a copy of the GNU General Public
+ * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -926,17 +937,17 @@ int callback_service_motion_snapshot (const struct _u_request * request, struct 
 /**
  * Initialize the motion service
  */
-json_t * c_service_init(struct _u_instance * instance, const char * url_prefix, struct _carleon_config * config) {
-  if (instance != NULL && url_prefix != NULL && config != NULL) {
-    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/service-motion/", NULL, NULL, NULL, &callback_service_motion_get, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/service-motion/@name", NULL, NULL, NULL, &callback_service_motion_get, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "POST", url_prefix, "/service-motion/", NULL, NULL, NULL, &callback_service_motion_add, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/service-motion/@name", NULL, NULL, NULL, &callback_service_motion_set, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "DELETE", url_prefix, "/service-motion/@name", NULL, NULL, NULL, &callback_service_motion_remove, (void*)config);
+json_t * c_service_init(struct _carleon_config * config) {
+  if (config != NULL) {
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-motion/", NULL, NULL, NULL, &callback_service_motion_get, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-motion/@name", NULL, NULL, NULL, &callback_service_motion_get, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "POST", config->url_prefix, "/service-motion/", NULL, NULL, NULL, &callback_service_motion_add, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-motion/@name", NULL, NULL, NULL, &callback_service_motion_set, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "DELETE", config->url_prefix, "/service-motion/@name", NULL, NULL, NULL, &callback_service_motion_remove, (void*)config);
 
-    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/service-motion/@name/status", NULL, NULL, NULL, &callback_service_motion_status, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/service-motion/@name/image/@file_list/@file_name", NULL, NULL, NULL, &callback_service_motion_image, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/service-motion/@name/stream/@stream_name/snapshot", NULL, NULL, NULL, &callback_service_motion_snapshot, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-motion/@name/status", NULL, NULL, NULL, &callback_service_motion_status, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-motion/@name/image/@file_list/@file_name", NULL, NULL, NULL, &callback_service_motion_image, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-motion/@name/stream/@stream_name/snapshot", NULL, NULL, NULL, &callback_service_motion_snapshot, (void*)config);
 
     return json_pack("{sissss}", 
                       "result", WEBSERVICE_RESULT_OK,
@@ -951,17 +962,17 @@ json_t * c_service_init(struct _u_instance * instance, const char * url_prefix, 
 /**
  * Closes the motion service
  */
-json_t * c_service_close(struct _u_instance * instance, const char * url_prefix) {
-  if (instance != NULL && url_prefix != NULL) {
-    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/service-motion/");
-    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/service-motion/@name");
-    ulfius_remove_endpoint_by_val(instance, "POST", url_prefix, "/service-motion/");
-    ulfius_remove_endpoint_by_val(instance, "PUT", url_prefix, "/service-motion/@name");
-    ulfius_remove_endpoint_by_val(instance, "DELETE", url_prefix, "/service-motion/@name");
+json_t * c_service_close(struct _carleon_config * config) {
+  if (config != NULL) {
+    ulfius_remove_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-motion/");
+    ulfius_remove_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-motion/@name");
+    ulfius_remove_endpoint_by_val(config->instance, "POST", config->url_prefix, "/service-motion/");
+    ulfius_remove_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-motion/@name");
+    ulfius_remove_endpoint_by_val(config->instance, "DELETE", config->url_prefix, "/service-motion/@name");
 
-    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/service-motion/@name/status");
-    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/service-motion/@name/image/@image_list/@image_file");
-    ulfius_remove_endpoint_by_val(instance, "PUT", url_prefix, "/service-motion/@name/stream/@stream_name/snapshot");
+    ulfius_remove_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-motion/@name/status");
+    ulfius_remove_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-motion/@name/image/@image_list/@image_file");
+    ulfius_remove_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-motion/@name/stream/@stream_name/snapshot");
 
 		//MagickCoreTerminus();
 		

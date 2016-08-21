@@ -18,8 +18,8 @@
 #define DATABASE "/tmp/database.db"
 #define URL_ALERT "http://localhost:2473/alert/%s/%s/%s/%s/"
 
-json_t * c_service_init(struct _u_instance * instance, const char * url_prefix, struct _carleon_config * config);
-json_t * c_service_close(struct _u_instance * instance, const char * url_prefix);
+json_t * c_service_init(struct _carleon_config * config);
+json_t * c_service_close(struct _carleon_config * config);
 json_t * c_service_command_get_list(struct _carleon_config * config);
 json_t * c_service_element_get_list(struct _carleon_config * config);
 json_t * c_service_exec(struct _carleon_config * config, const char * command, const char * element, json_t * parameters);
@@ -85,6 +85,8 @@ int main(int argc, char ** argv) {
     y_log_message(Y_LOG_LEVEL_ERROR, "Error ulfius_init_instance, abort");
     return(1);
   }
+  config.instance = &instance;
+  config.url_prefix = nstrdup(PREFIX);
   
   ulfius_add_endpoint_by_val(&instance, "GET", PREFIX, "/alert/@submodule_name/@source/@element/@message/", NULL, NULL, NULL, &callback_test_alert, NULL);
   ulfius_add_endpoint_by_val(&instance, "GET", PREFIX, "/commands/", NULL, NULL, NULL, &callback_test_commands, &config);
@@ -93,7 +95,7 @@ int main(int argc, char ** argv) {
   
   ulfius_add_endpoint_by_val(&instance, "OPTIONS", NULL, "*", NULL, NULL, NULL, &callback_options, &config);
 
-  j_res = c_service_init(&instance, PREFIX, &config);
+  j_res = c_service_init(&config);
   
   if (j_res != NULL) {
     c_res = json_dumps(j_res, JSON_ENCODE_ANY);
@@ -111,7 +113,7 @@ int main(int argc, char ** argv) {
     getchar();
   }
   
-  j_res = c_service_close(&instance, PREFIX);
+  j_res = c_service_close(&config);
   if (j_res != NULL) {
     c_res = json_dumps(j_res, JSON_ENCODE_ANY);
     y_log_message(Y_LOG_LEVEL_INFO, "Result of c_service_close is %s", c_res);
@@ -125,6 +127,7 @@ int main(int argc, char ** argv) {
   ulfius_clean_instance(&instance);
   h_close_db(config.conn);
   h_clean_connection(config.conn);
+  free(config.url_prefix);
   y_close_logs();
   return 0;
 }

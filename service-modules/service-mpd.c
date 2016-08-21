@@ -17,7 +17,18 @@
  * 
  * Copyright 2016 Nicolas Mora <mail@babelouest.org>
  *
- * Licence GPL V3
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU GENERAL PUBLIC LICENSE
+ * License as published by the Free Software Foundation;
+ * version 3 of the License.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU GENERAL PUBLIC LICENSE for more details.
+ *
+ * You should have received a copy of the GNU General Public
+ * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -775,19 +786,19 @@ int callback_service_mpd_volume_set (const struct _u_request * request, struct _
 /**
  * Initialize the mpd service
  */
-json_t * c_service_init(struct _u_instance * instance, const char * url_prefix, struct _carleon_config * config) {
-  if (instance != NULL && url_prefix != NULL && config != NULL) {
-    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/service-mpd/", NULL, NULL, NULL, &callback_service_mpd_get, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/service-mpd/@name", NULL, NULL, NULL, &callback_service_mpd_get, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "POST", url_prefix, "/service-mpd/", NULL, NULL, NULL, &callback_service_mpd_add, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/service-mpd/@name", NULL, NULL, NULL, &callback_service_mpd_set, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "DELETE", url_prefix, "/service-mpd/@name", NULL, NULL, NULL, &callback_service_mpd_remove, (void*)config);
+json_t * c_service_init(struct _carleon_config * config) {
+  if (config != NULL) {
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-mpd/", NULL, NULL, NULL, &callback_service_mpd_get, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-mpd/@name", NULL, NULL, NULL, &callback_service_mpd_get, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "POST", config->url_prefix, "/service-mpd/", NULL, NULL, NULL, &callback_service_mpd_add, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-mpd/@name", NULL, NULL, NULL, &callback_service_mpd_set, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "DELETE", config->url_prefix, "/service-mpd/@name", NULL, NULL, NULL, &callback_service_mpd_remove, (void*)config);
 
-    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/service-mpd/@name/status", NULL, NULL, NULL, &callback_service_mpd_status, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/service-mpd/@name/action/@action", NULL, NULL, NULL, &callback_service_mpd_action, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/service-mpd/@name/playlists", NULL, NULL, NULL, &callback_service_mpd_playlists_get, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/service-mpd/@name/playlist/@playlist", NULL, NULL, NULL, &callback_service_mpd_playlists_load, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/service-mpd/@name/volume/@volume", NULL, NULL, NULL, &callback_service_mpd_volume_set, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-mpd/@name/status", NULL, NULL, NULL, &callback_service_mpd_status, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-mpd/@name/action/@action_name", NULL, NULL, NULL, &callback_service_mpd_action, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-mpd/@name/playlists", NULL, NULL, NULL, &callback_service_mpd_playlists_get, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-mpd/@name/playlist/@playlist_name", NULL, NULL, NULL, &callback_service_mpd_playlists_load, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-mpd/@name/volume/@volume", NULL, NULL, NULL, &callback_service_mpd_volume_set, (void*)config);
     return json_pack("{sissss}", 
                       "result", WEBSERVICE_RESULT_OK,
                       "name", "service-mpd",
@@ -800,19 +811,19 @@ json_t * c_service_init(struct _u_instance * instance, const char * url_prefix, 
 /**
  * Closes the mpd service
  */
-json_t * c_service_close(struct _u_instance * instance, const char * url_prefix) {
-  if (instance != NULL && url_prefix != NULL) {
-    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/service-mpd/");
-    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/service-mpd/@name");
-    ulfius_remove_endpoint_by_val(instance, "POST", url_prefix, "/service-mpd/");
-    ulfius_remove_endpoint_by_val(instance, "PUT", url_prefix, "/service-mpd/@name");
-    ulfius_remove_endpoint_by_val(instance, "DELETE", url_prefix, "/service-mpd/@name");
+json_t * c_service_close(struct _carleon_config * config) {
+  if (config != NULL) {
+    ulfius_remove_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-mpd/");
+    ulfius_remove_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-mpd/@name");
+    ulfius_remove_endpoint_by_val(config->instance, "POST", config->url_prefix, "/service-mpd/");
+    ulfius_remove_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-mpd/@name");
+    ulfius_remove_endpoint_by_val(config->instance, "DELETE", config->url_prefix, "/service-mpd/@name");
 
-    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/service-mpd/@name/status");
-    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/service-mpd/@name/action/@action_name");
-    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/service-mpd/@name/playlists");
-    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/service-mpd/@name/playlists/@playlist_name/load");
-    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/service-mpd/@name/volume/@value");
+    ulfius_remove_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-mpd/@name/status");
+    ulfius_remove_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-mpd/@name/action/@action_name");
+    ulfius_remove_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-mpd/@name/playlists");
+    ulfius_remove_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-mpd/@name/playlists/@playlist_name/load");
+    ulfius_remove_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-mpd/@name/volume/@value");
 
     return json_pack("{si}", "result", WEBSERVICE_RESULT_OK);
   } else {

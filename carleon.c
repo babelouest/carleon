@@ -28,18 +28,24 @@
 /**
  * Initializes carleon endpoints and services
  */
-int init_carleon(struct _u_instance * instance, const char * url_prefix, struct _carleon_config * config) {
-  if (instance != NULL && url_prefix != NULL && config != NULL) {
+int init_carleon(struct _carleon_config * config) {
+  if (config != NULL) {
     
-    ulfius_add_endpoint_by_val(instance, "GET", url_prefix, "/service/", NULL, NULL, NULL, &callback_carleon_service_get, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_name/enable/@enable_value", NULL, NULL, NULL, &callback_carleon_service_enable, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_name/@element_id/cleanup", NULL, NULL, NULL, &callback_carleon_service_element_cleanup, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_name/@element_id/@tag", NULL, NULL, NULL, &callback_carleon_service_element_add_tag, (void*)config);
-    ulfius_add_endpoint_by_val(instance, "DELETE", url_prefix, "/service/@service_name/@element_id/@tag", NULL, NULL, NULL, &callback_carleon_service_element_remove_tag, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service/", NULL, NULL, NULL, &callback_carleon_service_get, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/reload", NULL, NULL, NULL, &callback_carleon_service_reload, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/@service_name/enable/@enable_value", NULL, NULL, NULL, &callback_carleon_service_enable, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/@service_name/@element_id/cleanup", NULL, NULL, NULL, &callback_carleon_service_element_cleanup, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/@service_name/@element_id/@tag", NULL, NULL, NULL, &callback_carleon_service_element_add_tag, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "DELETE", config->url_prefix, "/service/@service_name/@element_id/@tag", NULL, NULL, NULL, &callback_carleon_service_element_remove_tag, (void*)config);
 
-    if (init_service_list(instance, url_prefix, config) == C_OK) {
-      y_log_message(Y_LOG_LEVEL_INFO, "carleon is available on prefix %s", url_prefix);
-      return C_OK;
+    if (init_service_list(config) == C_OK) {
+      if (connect_enabled_services(config) == C_OK) {
+        y_log_message(Y_LOG_LEVEL_INFO, "carleon is available on prefix %s", config->url_prefix);
+        return C_OK;
+      } else {
+        y_log_message(Y_LOG_LEVEL_ERROR, "init_carleon - Error initializing enabled services");
+        return C_ERROR;
+      }
     } else {
       y_log_message(Y_LOG_LEVEL_ERROR, "init_carleon - Error initializing services list");
       return C_ERROR;
@@ -53,15 +59,16 @@ int init_carleon(struct _u_instance * instance, const char * url_prefix, struct 
 /**
  * Closes carleon endpoints and all services
  */
-int close_carleon(struct _u_instance * instance, const char * url_prefix, struct _carleon_config * config) {
-  if (instance != NULL) {
-    ulfius_remove_endpoint_by_val(instance, "GET", url_prefix, "/service/");
-    ulfius_remove_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_name/enable/@enable_value");
-    ulfius_remove_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_name/@element_id/cleanup");
-    ulfius_remove_endpoint_by_val(instance, "PUT", url_prefix, "/service/@service_name/@element_id/@tag");
-    ulfius_remove_endpoint_by_val(instance, "DELETE", url_prefix, "/service/@service_name/@element_id/@tag");
+int close_carleon(struct _carleon_config * config) {
+  if (config->instance != NULL) {
+    ulfius_remove_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service/");
+    ulfius_remove_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/reload");
+    ulfius_remove_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/@service_name/enable/@enable_value");
+    ulfius_remove_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/@service_name/@element_id/cleanup");
+    ulfius_remove_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/@service_name/@element_id/@tag");
+    ulfius_remove_endpoint_by_val(config->instance, "DELETE", config->url_prefix, "/service/@service_name/@element_id/@tag");
 
-    if (close_service_list(config, instance, url_prefix) == C_OK) {
+    if (close_service_list(config) == C_OK) {
       y_log_message(Y_LOG_LEVEL_INFO, "closing carleon");
       return C_OK;
     } else {
@@ -77,14 +84,14 @@ int close_carleon(struct _u_instance * instance, const char * url_prefix, struct
 /**
  * Initializes the services available
  */
-int init_service_list(struct _u_instance * instance, const char * url_prefix, struct _carleon_config * config) {
-  json_t * j_query, * j_result, * service_handshake, * service_list, * service;
+int init_service_list(struct _carleon_config * config) {
+  json_t * j_query, * j_result, * service_handshake;
   DIR * services_directory;
   struct dirent * in_file;
   char * file_path;
   void * file_handle;
   int res;
-  size_t nb_service = 0, index;
+  size_t nb_service = 0;
   
   config->service_list = malloc(sizeof(struct _carleon_service));
   
@@ -143,10 +150,13 @@ int init_service_list(struct _u_instance * instance, const char * url_prefix, st
         *(void **) (&cur_service.c_service_element_get_list) = dlsym(cur_service.dl_handle, "c_service_element_get_list");
         *(void **) (&cur_service.c_service_exec) = dlsym(cur_service.dl_handle, "c_service_exec");
         
-        if ((cur_service.c_service_init != NULL) && (cur_service.c_service_close != NULL) && (cur_service.c_service_command_get_list != NULL) && 
-            (cur_service.c_service_element_get_list != NULL) && (cur_service.c_service_exec != NULL)) {
+        if ((cur_service.c_service_init != NULL) && 
+            (cur_service.c_service_close != NULL) && 
+            (cur_service.c_service_command_get_list != NULL) && 
+            (cur_service.c_service_element_get_list != NULL) && 
+            (cur_service.c_service_exec != NULL)) {
           y_log_message(Y_LOG_LEVEL_INFO, "Adding service from file %s", file_path);
-          service_handshake = (*cur_service.c_service_init)(instance, url_prefix, config);
+          service_handshake = (*cur_service.c_service_init)(config);
           cur_service.name = nstrdup(json_string_value(json_object_get(service_handshake, "name")));
           cur_service.description = nstrdup(json_string_value(json_object_get(service_handshake, "description")));
           json_decref(service_handshake);
@@ -157,7 +167,7 @@ int init_service_list(struct _u_instance * instance, const char * url_prefix, st
             config->service_list = realloc(config->service_list, (nb_service+1)*sizeof(struct _carleon_service));
             if (config->service_list == NULL) {
               y_log_message(Y_LOG_LEVEL_ERROR, "init_service_list - Error allocating resources for service_list");
-              close_service_list(config, instance, url_prefix);
+              close_service_list(config);
               return C_ERROR_MEMORY;
             }
             config->service_list[nb_service - 1].name = cur_service.name;
@@ -217,7 +227,7 @@ int init_service_list(struct _u_instance * instance, const char * url_prefix, st
               }
             }
           } else {
-            close_service(&cur_service, instance, url_prefix);
+            close_service(&cur_service, config);
             y_log_message(Y_LOG_LEVEL_ERROR, "init_service_list - Error handshake for module %s", file_path);
           }
         } else {
@@ -234,28 +244,35 @@ int init_service_list(struct _u_instance * instance, const char * url_prefix, st
         y_log_message(Y_LOG_LEVEL_WARNING, "No service found for carleon subsystem. If not needed, you can disable it");
     }
     
-    // Connect all devices that are marked connected in the database
-    service_list = service_get(config, NULL);
-    if (service_list != NULL) {
-      json_array_foreach(service_list, index, service) {
-        if (json_object_get(service, "connected") == json_true()) {
-          int res = service_enable(config, json_string_value(json_object_get(service, "name")), 1);
-          if (res == C_OK) {
-            y_log_message(Y_LOG_LEVEL_INFO, "Service %s connected", json_string_value(json_object_get(service, "name")));
-          } else {
-            y_log_message(Y_LOG_LEVEL_ERROR, "Error connecting service %s, reason: %d", json_string_value(json_object_get(service, "name")), res);
-          }
-        }
-      }
-      json_decref(service_list);
-    } else {
-      y_log_message(Y_LOG_LEVEL_ERROR, "init_service_list - Error getting service list");
-      return C_ERROR_DB;
-    }
     return C_OK;
   } else {
     y_log_message(Y_LOG_LEVEL_ERROR, "init_service_list - Error input parameters");
     return C_ERROR_PARAM;
+  }
+}
+
+int connect_enabled_services(struct _carleon_config * config) {
+  json_t * service_list, * service;
+  size_t index;
+  
+  // Connect all devices that are marked connected in the database
+  service_list = service_get(config, NULL);
+  if (service_list != NULL) {
+    json_array_foreach(service_list, index, service) {
+      if (json_object_get(service, "enabled") == json_true()) {
+        int res = service_enable(config, json_string_value(json_object_get(service, "name")), 1);
+        if (res == C_OK) {
+          y_log_message(Y_LOG_LEVEL_INFO, "Service %s connected", json_string_value(json_object_get(service, "name")));
+        } else {
+          y_log_message(Y_LOG_LEVEL_ERROR, "Error connecting service %s, reason: %d", json_string_value(json_object_get(service, "name")), res);
+        }
+      }
+    }
+    json_decref(service_list);
+    return C_OK;
+  } else {
+    y_log_message(Y_LOG_LEVEL_ERROR, "init_service_list - Error getting service list");
+    return C_ERROR_DB;
   }
 }
 
@@ -289,14 +306,14 @@ void clean_carleon(struct _carleon_config * config) {
 /**
  * Closes all the services
  */
-int close_service_list(struct _carleon_config * config, struct _u_instance * instance, const char * url_prefix) {
+int close_service_list(struct _carleon_config * config) {
   int i;
   
   if (config == NULL) {
     return C_ERROR_PARAM;
   } else {
     for (i=0; config->service_list != NULL && config->service_list[i].name != NULL; i++) {
-      close_service((config->service_list + i), instance, url_prefix);
+      close_service((config->service_list + i), config);
     }
     free(config->service_list);
     config->service_list = NULL;
@@ -307,8 +324,8 @@ int close_service_list(struct _carleon_config * config, struct _u_instance * ins
 /**
  * Closes the specified service
  */
-void close_service(struct _carleon_service * service, struct _u_instance * instance, const char * url_prefix) {
-  json_t * j_result = service->c_service_close(instance, url_prefix);
+void close_service(struct _carleon_service * service, struct _carleon_config * config) {
+  json_t * j_result = service->c_service_close(config);
   
   if (j_result == NULL || json_integer_value(json_object_get(j_result, "result")) != WEBSERVICE_RESULT_OK) {
     y_log_message(Y_LOG_LEVEL_ERROR, "close_service - Error closing service %s", service->name);
@@ -331,6 +348,35 @@ int callback_carleon_service_get (const struct _u_request * request, struct _u_r
     response->json_body = service_get((struct _carleon_config *)user_data, NULL);
     if (response->json_body == NULL) {
       y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error getting service list, aborting");
+      response->status = 500;
+    }
+    return U_OK;
+  }
+}
+
+int callback_carleon_service_reload (const struct _u_request * request, struct _u_response * response, void * user_data) {
+  if (user_data == NULL) {
+    y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error, user_data is NULL");
+    return U_ERROR_PARAMS;
+  } else {
+    if (close_service_list(((struct _carleon_config *)user_data)) == C_OK) {
+      if (init_service_list(((struct _carleon_config *)user_data)) == C_OK) {
+        if (connect_enabled_services(((struct _carleon_config *)user_data)) == C_OK) {
+          response->json_body = service_get((struct _carleon_config *)user_data, NULL);
+          if (response->json_body == NULL) {
+            y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error getting service list, aborting");
+            response->status = 500;
+          }
+        } else {
+          y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error enabling services");
+          response->status = 500;
+        }
+      } else {
+        y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error initializing service list");
+        response->status = 500;
+      }
+    } else {
+      y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error closing service list");
       response->status = 500;
     }
     return U_OK;
