@@ -519,7 +519,7 @@ int callback_service_mpd_action (const struct _u_request * request, struct _u_re
       if (json_integer_value(json_object_get(mpd, "result")) == WEBSERVICE_RESULT_NOT_FOUND) {
         response->status = 404;
       } else if (json_integer_value(json_object_get(mpd, "result")) == WEBSERVICE_RESULT_OK) {
-        result = mpd_set_action((struct _carleon_config *)user_data, json_object_get(mpd, "element"), u_map_get(request->map_url, "action"));
+        result = mpd_set_action((struct _carleon_config *)user_data, json_object_get(mpd, "element"), u_map_get(request->map_url, "action_name"));
         if (result != NULL && json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_OK) {
           response->json_body = json_copy(json_object_get(result, "status"));
         } else {
@@ -686,7 +686,7 @@ int callback_service_mpd_playlists_load (const struct _u_request * request, stru
       if (json_integer_value(json_object_get(mpd, "result")) == WEBSERVICE_RESULT_NOT_FOUND) {
         response->status = 404;
       } else if (json_integer_value(json_object_get(mpd, "result")) == WEBSERVICE_RESULT_OK) {
-        result = mpd_load_playlist((struct _carleon_config *)user_data, json_object_get(mpd, "element"), u_map_get(request->map_url, "playlist"));
+        result = mpd_load_playlist((struct _carleon_config *)user_data, json_object_get(mpd, "element"), u_map_get(request->map_url, "playlist_name"));
         if (result == NULL || json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_ERROR) {
           response->status = 500;
         } else if (json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_NOT_FOUND) {
