@@ -108,10 +108,9 @@ int init_service_list(struct _carleon_config * config) {
       return C_ERROR_MEMORY;
     }
     json_object_set_new(j_query, "table", json_string(CARLEON_TABLE_SERVICE));
-    json_object_set_new(j_query, "set", json_pack("{ss}", "cs_enabled", "0"));
-    res = h_update(config->conn, j_query, NULL);
+    res = h_delete(config->conn, j_query, NULL);
     if (res != H_OK) {
-      y_log_message(Y_LOG_LEVEL_ERROR, "init_service_list - Error updating table %s", CARLEON_TABLE_SERVICE);
+      y_log_message(Y_LOG_LEVEL_ERROR, "init_service_list - Error truncating table %s", CARLEON_TABLE_SERVICE);
       return C_ERROR_DB;
     }
     json_decref(j_query);
