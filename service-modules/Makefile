@@ -48,12 +48,18 @@ libservicempd.so: service-mpd.o
 service-mpd.o: service-mpd.c
 	$(CC) $(CFLAGS) service-mpd.c
 
+libserviceliquidsoap.so: service-liquidsoap.o
+	$(CC) -shared -Wl,-soname,libserviceliquidsoap.so -o libserviceliquidsoap.so service-liquidsoap.o $(LIBS) -L/usr/local/lib
+
+service-liquidsoap.o: service-liquidsoap.c
+	$(CC) $(CFLAGS) service-liquidsoap.c
+
 clean:
-	rm -f *.o *.so valgrind.txt unit-tests test-motion test-mpd 
+	rm -f *.o *.so valgrind.txt unit-tests test-motion test-mpd test-liquidsoap valgrind.txt
 
 debug: ADDITIONALFLAGS=-DDEBUG -g -O0
 
-debug: libservicemock.so libservicemotion.so libservicempd.so
+debug: libservicemock.so libservicemotion.so libservicempd.so libserviceliquidsoap.so
 
 release: ADDITIONALFLAGS=-O3
 
@@ -76,6 +82,13 @@ test-mpd: test-service.c service-mpd.o
 	$(CC) $(CFLAGS) test-service.c
 	$(CC) test-service.o service-mpd.o -o test-mpd -lpthread -ljansson -lyder -lorcania -lulfius -lhoel -lmpdclient
 	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all ./test-mpd 2>valgrind.txt
+
+test-liquidsoap: ADDITIONALFLAGS=-DDEBUG -g -O0
+
+test-liquidsoap: test-service.c service-liquidsoap.o
+	$(CC) $(CFLAGS) test-service.c
+	$(CC) test-service.o service-liquidsoap.o -o test-liquidsoap -lpthread -ljansson -lyder -lorcania -lulfius -lhoel
+	valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all ./test-liquidsoap 2>valgrind.txt
 
 unit-tests: unit-tests.c
 	$(CC) -o unit-tests unit-tests.c -lc -lulfius -lorcania -ljansson -L$(PREFIX)/lib

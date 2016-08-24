@@ -250,8 +250,65 @@ void run_service_mpd_tests() {
   json_decref(service_mpd_invalid);
 }
 
+void run_service_liquidsoap_tests() {
+  json_t * service_liquidsoap_no_control = json_loads("{\
+		\"name\": \"lqs1\",\
+		\"description\": \"lqs1\",\
+		\"radio_url\": \"http://localhost/\",\
+		\"radio_type\": \"audio/mpeg\",\
+		\"control_enabled\": false\
+  }", JSON_DECODE_ANY, NULL);
+  json_t * service_liquidsoap_no_control_set = json_loads("{\
+		\"name\": \"lqs1\",\
+		\"description\": \"lqs1 set\",\
+		\"radio_url\": \"http://localhost/radio\",\
+		\"radio_type\": \"audio/ogg\",\
+		\"control_enabled\": false,\
+		\"control_host\": \"\",\
+		\"control_port\": 0,\
+		\"control_request_name\": \"\"\
+  }", JSON_DECODE_ANY, NULL);
+  json_t * service_liquidsoap_control = json_loads("{\
+		\"name\": \"lqs2\",\
+		\"description\": \"lqs2\",\
+		\"radio_url\": \"http://localhost/\",\
+		\"radio_type\": \"audio/mpeg\",\
+		\"control_enabled\": true,\
+		\"control_host\": \"localhost\",\
+		\"control_port\": 8088,\
+		\"control_request_name\": \"control\"\
+  }", JSON_DECODE_ANY, NULL);
+  json_t * service_liquidsoap_invalid = json_loads("{\
+		\"name\": \"lqs3\",\
+		\"description\": \"lqs3\",\
+		\"radio_url\": \"http://localhost/\",\
+		\"radio_type\": 33,\
+		\"control_enabled\": true,\
+		\"control_host\": \"localhost\",\
+		\"control_port\": \"localhost\",\
+		\"control_request_name\": \"control\"\
+  }", JSON_DECODE_ANY, NULL);
+  
+  run_simple_test("POST", SERVER_URL PREFIX_CARLEON "/service-liquidsoap/", service_liquidsoap_no_control, 200, NULL);
+  run_simple_test("POST", SERVER_URL PREFIX_CARLEON "/service-liquidsoap/", service_liquidsoap_control, 200, NULL);
+  run_simple_test("POST", SERVER_URL PREFIX_CARLEON "/service-liquidsoap/", service_liquidsoap_invalid, 400, NULL);
+  run_simple_test("GET", SERVER_URL PREFIX_CARLEON "/service-liquidsoap/lqs1", NULL, 200, NULL);
+  run_simple_test("GET", SERVER_URL PREFIX_CARLEON "/service-liquidsoap/lqs2", NULL, 200, service_liquidsoap_control);
+  run_simple_test("PUT", SERVER_URL PREFIX_CARLEON "/service-liquidsoap/lqs1", service_liquidsoap_no_control_set, 200, NULL);
+  run_simple_test("GET", SERVER_URL PREFIX_CARLEON "/service-liquidsoap/lqs1", NULL, 200, service_liquidsoap_no_control_set);
+  run_simple_test("GET", SERVER_URL PREFIX_CARLEON "/service-liquidsoap/lqs3", NULL, 404, NULL);
+  run_simple_test("GET", SERVER_URL PREFIX_CARLEON "/service-liquidsoap/", NULL, 200, service_liquidsoap_control);
+  run_simple_test("DELETE", SERVER_URL PREFIX_CARLEON "/service-liquidsoap/lqs1", NULL, 200, NULL);
+  run_simple_test("DELETE", SERVER_URL PREFIX_CARLEON "/service-liquidsoap/lqs2", NULL, 200, NULL);
+
+  json_decref(service_liquidsoap_no_control);
+  json_decref(service_liquidsoap_no_control_set);
+  json_decref(service_liquidsoap_control);
+  json_decref(service_liquidsoap_invalid);
+}
+
 int main(void) {
-  printf("Press <enter> to run service mock tests\n");
+  /*printf("Press <enter> to run service mock tests\n");
   getchar();
   run_service_mock_tests();
   printf("Press <enter> to run service motion tests\n");
@@ -259,6 +316,9 @@ int main(void) {
   run_service_motion_tests();
   printf("Press <enter> to run service mpd tests\n");
   getchar();
-  run_service_mpd_tests();
+  run_service_mpd_tests();*/
+  printf("Press <enter> to run service liquidsoap tests\n");
+  getchar();
+  run_service_liquidsoap_tests();
   return 0;
 }
