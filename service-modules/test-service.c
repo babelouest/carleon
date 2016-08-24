@@ -83,6 +83,8 @@ int main(int argc, char ** argv) {
   
   if (ulfius_init_instance(&instance, PORT, NULL) != U_OK) {
     y_log_message(Y_LOG_LEVEL_ERROR, "Error ulfius_init_instance, abort");
+    h_close_db(config.conn);
+    h_clean_connection(config.conn);
     return(1);
   }
   config.instance = &instance;
