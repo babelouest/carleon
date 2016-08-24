@@ -155,24 +155,25 @@ json_t * mpd_add(struct _carleon_config * config, json_t * mpd) {
                         "cmpd_host", json_string_value(json_object_get(mpd, "host")),
                         "cmpd_port", json_object_get(mpd, "port")!=NULL?json_integer_value(json_object_get(mpd, "port")):0,
                         "cmpd_password", json_object_get(mpd, "password")!=NULL?json_string_value(json_object_get(mpd, "password")):""),
-          * j_reasons;
+          * j_reasons, * j_return;
   int res;
   
   j_reasons = is_mpd_valid(config, mpd, 1);
   if (j_reasons != NULL && json_array_size(j_reasons) == 0) {
     res = h_insert(config->conn, j_query, NULL);
-    json_decref(j_reasons);
     json_decref(j_query);
     if (res == H_OK) {
-      return json_pack("{si}", "result", WEBSERVICE_RESULT_OK);
+      j_return = json_pack("{si}", "result", WEBSERVICE_RESULT_OK);
     } else {
-      return json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
+      j_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
     }
   } else if (j_reasons != NULL && json_array_size(j_reasons) > 0) {
-    return json_pack("{siso}", "result", WEBSERVICE_RESULT_PARAM, "reason", j_reasons);
+    j_return = json_pack("{siso}", "result", WEBSERVICE_RESULT_PARAM, "reason", j_reasons);
   } else {
-    return json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
+    j_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
   }
+  json_decref(j_reasons);
+  return j_return;
 }
 
 /**
@@ -189,24 +190,25 @@ json_t * mpd_set(struct _carleon_config * config, const char * name, json_t * mp
                         "cmpd_password", json_object_get(mpd, "password")!=NULL?json_string_value(json_object_get(mpd, "password")):"",
                       "where",
                         "cmpd_name", name),
-          * j_reasons;
+          * j_reasons, * j_return;
   int res;
   
   j_reasons = is_mpd_valid(config, mpd, 0);
   if (j_reasons != NULL && json_array_size(j_reasons) == 0) {
     res = h_update(config->conn, j_query, NULL);
-    json_decref(j_reasons);
     json_decref(j_query);
     if (res == H_OK) {
-      return json_pack("{si}", "result", WEBSERVICE_RESULT_OK);
+      j_return =  json_pack("{si}", "result", WEBSERVICE_RESULT_OK);
     } else {
-      return json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
+      j_return =  json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
     }
   } else if (j_reasons != NULL && json_array_size(j_reasons) > 0) {
-    return json_pack("{siso}", "result", WEBSERVICE_RESULT_PARAM, "reason", j_reasons);
+    j_return =  json_pack("{siso}", "result", WEBSERVICE_RESULT_PARAM, "reason", j_reasons);
   } else {
-    return json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
+    j_return =  json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
   }
+  json_decref(j_reasons);
+  return j_return;
 }
 
 /**
