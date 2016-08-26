@@ -824,7 +824,7 @@ json_t * c_service_close(struct _carleon_config * config) {
     ulfius_remove_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-mpd/@name/status");
     ulfius_remove_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-mpd/@name/action/@action_name");
     ulfius_remove_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-mpd/@name/playlists");
-    ulfius_remove_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-mpd/@name/playlists/@playlist_name/load");
+    ulfius_remove_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-mpd/@name/playlists/@playlist_name");
     ulfius_remove_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-mpd/@name/volume/@value");
 
     return json_pack("{si}", "result", WEBSERVICE_RESULT_OK);

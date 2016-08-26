@@ -39,7 +39,7 @@
 
 #define LIQUIDSOAP_TABLE_NAME "c_service_liquidsoap"
 
-#define LIQUIDSOAP_FIELDS "$title$artist$albumartist$year$#album$"
+#define LIQUIDSOAP_FIELDS "$title$artist$albumartist$year$album$"
 #define LIQUIDSOAP_COMMANDS "$skip$stop$start$status$remaining$"
 
 /**
@@ -163,7 +163,12 @@ json_t * is_liquidsoap_valid(struct _carleon_config * config, json_t * liquidsoa
  * add the specified liquidsoap
  */
 json_t * liquidsoap_add(struct _carleon_config * config, json_t * liquidsoap) {
-  json_t * j_query = json_pack("{sss{sssssssssIsssIss}}",
+  json_t * j_query, * j_reasons;
+  int res;
+  
+  j_reasons = is_liquidsoap_valid(config, liquidsoap, 1);
+  if (j_reasons != NULL && json_array_size(j_reasons) == 0) {
+		j_query = json_pack("{sss{sssssssssisssIss}}",
                       "table",
                         LIQUIDSOAP_TABLE_NAME,
                       "values",
@@ -174,12 +179,7 @@ json_t * liquidsoap_add(struct _carleon_config * config, json_t * liquidsoap) {
                         "csl_control_enabled", json_object_get(liquidsoap, "control_enabled")==json_true()?1:0,
                         "csl_control_host", json_object_get(liquidsoap, "control_enabled")==json_true()?json_string_value(json_object_get(liquidsoap, "control_host")):"",
                         "csl_control_port", json_object_get(liquidsoap, "control_enabled")==json_true()?json_integer_value(json_object_get(liquidsoap, "control_port")):0,
-                        "csl_control_request_name", json_object_get(liquidsoap, "control_enabled")==json_true()?json_string_value(json_object_get(liquidsoap, "control_request_name")):""),
-          * j_reasons;
-  int res;
-  
-  j_reasons = is_liquidsoap_valid(config, liquidsoap, 1);
-  if (j_reasons != NULL && json_array_size(j_reasons) == 0) {
+                        "csl_control_request_name", json_object_get(liquidsoap, "control_enabled")==json_true()?json_string_value(json_object_get(liquidsoap, "control_request_name")):"");
     res = h_insert(config->conn, j_query, NULL);
     json_decref(j_reasons);
     json_decref(j_query);
@@ -199,7 +199,12 @@ json_t * liquidsoap_add(struct _carleon_config * config, json_t * liquidsoap) {
  * update the specified liquidsoap
  */
 json_t * liquidsoap_set(struct _carleon_config * config, const char * name, json_t * liquidsoap) {
-  json_t * j_query = json_pack("{sss{sssssssIsssIss}s{ss}}",
+  json_t * j_query,* j_reasons;
+  int res;
+  
+  j_reasons = is_liquidsoap_valid(config, liquidsoap, 0);
+  if (j_reasons != NULL && json_array_size(j_reasons) == 0) {
+		j_query = json_pack("{sss{sssssssisssIss}s{ss}}",
                       "table",
                         LIQUIDSOAP_TABLE_NAME,
                       "set",
@@ -211,12 +216,7 @@ json_t * liquidsoap_set(struct _carleon_config * config, const char * name, json
                         "csl_control_port", json_object_get(liquidsoap, "control_enabled")==json_true()?json_integer_value(json_object_get(liquidsoap, "control_port")):0,
                         "csl_control_request_name", json_object_get(liquidsoap, "control_enabled")==json_true()?json_string_value(json_object_get(liquidsoap, "control_request_name")):"",
                       "where",
-                        "csl_name", name),
-          * j_reasons;
-  int res;
-  
-  j_reasons = is_liquidsoap_valid(config, liquidsoap, 0);
-  if (j_reasons != NULL && json_array_size(j_reasons) == 0) {
+                        "csl_name", name);
     res = h_update(config->conn, j_query, NULL);
     json_decref(j_reasons);
     json_decref(j_query);

@@ -946,7 +946,7 @@ json_t * c_service_init(struct _carleon_config * config) {
     ulfius_add_endpoint_by_val(config->instance, "DELETE", config->url_prefix, "/service-motion/@name", NULL, NULL, NULL, &callback_service_motion_remove, (void*)config);
 
     ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-motion/@name/status", NULL, NULL, NULL, &callback_service_motion_status, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-motion/@name/image/@file_list/@file_name", NULL, NULL, NULL, &callback_service_motion_image, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-motion/@name/image/@image_list/@image_file", NULL, NULL, NULL, &callback_service_motion_image, (void*)config);
     ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-motion/@name/stream/@stream_name/snapshot", NULL, NULL, NULL, &callback_service_motion_snapshot, (void*)config);
 
     return json_pack("{sissss}", 
