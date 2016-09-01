@@ -33,6 +33,7 @@ json_t * service_get(struct _carleon_config * config, const char * name) {
   int res;
   size_t index;
   
+  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (config == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "service_get - Error no config");
     return NULL;
@@ -114,6 +115,7 @@ json_t * service_get(struct _carleon_config * config, const char * name) {
  * Parse a service from the database to the web format
  */
 json_t * parse_service_from_db(json_t * service) {
+  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (service != NULL && json_is_object(service)) {
     return json_pack("{ssssso}", "name", json_string_value(json_object_get(service, "cs_name")),
                                  "description", json_object_get(service, "cs_description")!=NULL?json_string_value(json_object_get(service, "cs_description")):"",
@@ -129,6 +131,7 @@ int service_enable(struct _carleon_config * config, const char * name, const int
   json_t * j_service = service_get(config, name), * j_query;
   int res;
   
+  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (j_service == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "service_enable - service %s not found", name);
     return C_ERROR_NOT_FOUND;
@@ -165,6 +168,7 @@ json_t * service_element_get_tag(struct _carleon_config * config, const char * s
   json_t * j_query = json_pack("{sss{ssss}}", "table", CARLEON_TABLE_ELEMENT, "where", "cs_name", service, "ce_name", element), * j_result, * tags;
   int res;
   
+  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (j_query == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "service_element_get_tag - Error generating j_query");
     return NULL;
@@ -199,6 +203,7 @@ int service_element_add_tag(struct _carleon_config * config, const char * servic
          * j_service = service_get(config, service);
   int res;
   
+  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (j_service == NULL) {
     json_decref(tags);
     json_decref(j_query);
@@ -271,6 +276,7 @@ int service_element_remove_tag(struct _carleon_config * config, const char * ser
   int index, res;
   char * str_tag;
   
+  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (j_service == NULL) {
     json_decref(tags);
     return C_ERROR_NOT_FOUND;
@@ -322,6 +328,7 @@ int service_element_cleanup(struct _carleon_config * config, const char * servic
                         "ce_name", element);
   int res;
   
+  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (j_query != NULL) {
     res = h_delete(config->conn, j_query, NULL);
     json_decref(j_query);
@@ -340,6 +347,7 @@ int service_element_cleanup(struct _carleon_config * config, const char * servic
  * Execute the specified command on the specified element of the specified service with the specified parameters
  */
 json_t * service_exec(struct _carleon_config * config, struct _carleon_service * service, const char * command, const char * element, json_t * parameters) {
+  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (config != NULL && service != NULL && command != NULL) {
     return service->c_service_exec(config, command, element, parameters);
   } else {
