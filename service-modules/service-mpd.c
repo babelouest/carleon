@@ -413,19 +413,19 @@ json_t * mpd_get_status(struct _carleon_config * config, json_t * mpd) {
                                 "volume", mpd_status_get_volume(status),
                                 "elapsed_time", mpd_status_get_elapsed_time(status),
                                 "total_time", mpd_status_get_total_time(status));
-      }
-      mpd_status_free(status);
-      mpd_response_next(conn);
-      
-      song = mpd_recv_song(conn);
-      if (song != NULL && to_return != NULL) {
-        json_object_set_new(json_object_get(to_return, "status"), "title", json_string(mpd_song_get_tag(song, MPD_TAG_TITLE, 0)));
-        json_object_set_new(json_object_get(to_return, "status"), "artist", json_string(mpd_song_get_tag(song, MPD_TAG_ARTIST, 0)));
-        json_object_set_new(json_object_get(to_return, "status"), "album", json_string(mpd_song_get_tag(song, MPD_TAG_ALBUM, 0)));
-        json_object_set_new(json_object_get(to_return, "status"), "date", json_string(mpd_song_get_tag(song, MPD_TAG_DATE, 0)));
-        json_object_set_new(json_object_get(to_return, "status"), "name", json_string(mpd_song_get_tag(song, MPD_TAG_NAME, 0)));
-        json_object_set_new(json_object_get(to_return, "status"), "track", json_string(mpd_song_get_tag(song, MPD_TAG_TRACK, 0)));
-        mpd_song_free(song);
+        mpd_status_free(status);
+        mpd_response_next(conn);
+        
+        song = mpd_recv_song(conn);
+        if (song != NULL && to_return != NULL) {
+          json_object_set_new(json_object_get(to_return, "status"), "title", json_string(mpd_song_get_tag(song, MPD_TAG_TITLE, 0)));
+          json_object_set_new(json_object_get(to_return, "status"), "artist", json_string(mpd_song_get_tag(song, MPD_TAG_ARTIST, 0)));
+          json_object_set_new(json_object_get(to_return, "status"), "album", json_string(mpd_song_get_tag(song, MPD_TAG_ALBUM, 0)));
+          json_object_set_new(json_object_get(to_return, "status"), "date", json_string(mpd_song_get_tag(song, MPD_TAG_DATE, 0)));
+          json_object_set_new(json_object_get(to_return, "status"), "name", json_string(mpd_song_get_tag(song, MPD_TAG_NAME, 0)));
+          json_object_set_new(json_object_get(to_return, "status"), "track", json_string(mpd_song_get_tag(song, MPD_TAG_TRACK, 0)));
+          mpd_song_free(song);
+        }
       }
     } else {
       y_log_message(Y_LOG_LEVEL_ERROR, "mpd_get_status - Error mpd_run_password, message is %s", mpd_connection_get_error_message(conn));
