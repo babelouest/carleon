@@ -857,15 +857,15 @@ int callback_service_motion_image (const struct _u_request * request, struct _u_
 	y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (service_motion != NULL && json_integer_value(json_object_get(service_motion, "result")) == WEBSERVICE_RESULT_OK) {
 		json_array_foreach(json_object_get(json_object_get(service_motion, "element"), "file_list"), index, element) {
-			if (0 == nstrcmp(json_string_value(json_object_get(element, "name")), u_map_get(request->map_url, "file_list"))) {
+			if (0 == nstrcmp(json_string_value(json_object_get(element, "name")), u_map_get(request->map_url, "image_list"))) {
 				file_list = element;
 			}
 		}
 		if (file_list != NULL) {
-			full_path = msprintf("%s/%s", json_string_value(json_object_get(file_list, "path")), u_map_get(request->map_url, "file_name"));
+			full_path = msprintf("%s/%s", json_string_value(json_object_get(file_list, "path")), u_map_get(request->map_url, "image_file"));
 			if (access(full_path, F_OK) != -1) {
 				if (u_map_get(request->map_url, "thumbnail") != NULL) {
-					thumbnail_path = msprintf("%s/%s", json_string_value(json_object_get(file_list, "thumbnail_path")), u_map_get(request->map_url, "file_name"));
+					thumbnail_path = msprintf("%s/%s", json_string_value(json_object_get(file_list, "thumbnail_path")), u_map_get(request->map_url, "image_file"));
 					if (access(thumbnail_path, F_OK) != -1) {
 						response->binary_body = get_file(thumbnail_path, &(response->binary_body_length));
 						if (response->binary_body == NULL) {
