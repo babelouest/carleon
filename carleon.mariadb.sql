@@ -14,8 +14,9 @@ CREATE TABLE `c_service` (
 );
 
 CREATE TABLE `c_element` (
-  `cs_name` varchar(64),
-  `ce_name` varchar(64),
+  `ce_id` INT(11) PRIMARY KEY AUTO_INCREMENT,
+  `cs_name` VARCHAR(64),
+  `ce_name` VARCHAR(64),
   `ce_tag` blob,
   CONSTRAINT `service_ibfk_1` FOREIGN KEY (`cs_name`) REFERENCES `c_service` (`cs_name`)
 );
