@@ -26,10 +26,8 @@
 #ifndef __CARLEON_H_
 #define __CARLEON_H_
 
-#include <stdlib.h>
-#include <dirent.h>
-#include <stdio.h>
-#include <dlfcn.h>
+#define _CARLEON_VERSION 1.0
+
 #include <jansson.h>
 
 /** Angharad libraries **/
@@ -39,8 +37,6 @@
 #define _HOEL_MARIADB
 #define _HOEL_SQLITE
 #include <hoel.h>
-
-#define _CARLEON_VERSION 0.9
 
 #define C_OK              0
 #define C_ERROR           1

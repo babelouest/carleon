@@ -23,6 +23,9 @@
  *
  */
 
+#include <dirent.h>
+#include <dlfcn.h>
+
 #include "carleon.h"
 
 /**
