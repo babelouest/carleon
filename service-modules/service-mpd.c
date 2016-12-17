@@ -32,6 +32,7 @@
  *
  */
 
+#include <string.h>
 #include <jansson.h>
 #include <ulfius.h>
 #include <hoel.h>
