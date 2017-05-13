@@ -49,6 +49,12 @@
 #define MPD_TABLE_NAME "c_service_mpd"
 #define MPD_CONNECT_TIMEOUT 3000
 
+int set_response_json_body_and_clean(struct _u_response * response, uint status, json_t * json_body) {
+  int res = ulfius_set_json_body_response(response, status, json_body);
+  json_decref(json_body);
+  return res;
+}
+
 /**
  * get the specified mpd or all mpd
  */
@@ -113,7 +119,7 @@ json_t * is_mpd_valid(struct _carleon_config * config, json_t * mpd, int add) {
     if (!add) {
       j_result = mpd_get(config, NULL);
       json_array_foreach(json_object_get(j_result, "element"), index, element) {
-        if (0 == nstrcmp(json_string_value(json_object_get(element, "name")), json_string_value(json_object_get(mpd, "name")))) {
+        if (0 == o_strcmp(json_string_value(json_object_get(element, "name")), json_string_value(json_object_get(mpd, "name")))) {
           json_array_append_new(to_return, json_pack("{ss}", "name", "a mpd service with the same name already exist"));
         }
       }
@@ -172,7 +178,7 @@ json_t * mpd_add(struct _carleon_config * config, json_t * mpd) {
       j_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
     }
   } else if (j_reasons != NULL && json_array_size(j_reasons) > 0) {
-    j_return = json_pack("{siso}", "result", WEBSERVICE_RESULT_PARAM, "reason", j_reasons);
+    j_return = json_pack("{siso}", "result", WEBSERVICE_RESULT_PARAM, "reason", json_copy(j_reasons));
   } else {
     j_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
   }
@@ -248,11 +254,11 @@ int callback_service_mpd_get (const struct _u_request * request, struct _u_respo
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_mpd_get - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
     j_service_mpd = mpd_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "name"));
     if (j_service_mpd != NULL && json_integer_value(json_object_get(j_service_mpd, "result")) == WEBSERVICE_RESULT_OK) {
-      response->json_body = json_copy(json_object_get(j_service_mpd, "element"));
+      set_response_json_body_and_clean(response, 200, json_copy(json_object_get(j_service_mpd, "element")));
     } else if (j_service_mpd != NULL && json_integer_value(json_object_get(j_service_mpd, "result")) == WEBSERVICE_RESULT_NOT_FOUND) {
       response->status = 404;
     } else {
@@ -261,7 +267,7 @@ int callback_service_mpd_get (const struct _u_request * request, struct _u_respo
     }
     json_decref(j_service_mpd);
   }
-  return U_OK;
+  return U_CALLBACK_CONTINUE;
 }
 
 /**
@@ -269,24 +275,24 @@ int callback_service_mpd_get (const struct _u_request * request, struct _u_respo
  * add the specified mpd
  */
 int callback_service_mpd_add (const struct _u_request * request, struct _u_response * response, void * user_data) {
-  json_t * result;
+  json_t * result, * json_body = ulfius_get_json_body_request(request, NULL);
   
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_mpd_add - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
-    result = mpd_add((struct _carleon_config *)user_data, request->json_body);
+    result = mpd_add((struct _carleon_config *)user_data, json_body);
     if (result == NULL) {
       y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_mpd_add - Error in mpd_add");
       response->status = 500;
     } else if (json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_PARAM) {
-      response->json_body = json_copy(json_object_get(result, "reason"));
-      response->status = 400;
+      set_response_json_body_and_clean(response, 400, json_copy(json_object_get(result, "reason")));
     }
     json_decref(result);
   }
-  return U_OK;
+  json_decref(json_body);
+  return U_CALLBACK_CONTINUE;
 }
 
 /**
@@ -294,7 +300,7 @@ int callback_service_mpd_add (const struct _u_request * request, struct _u_respo
  * update the specified mpd
  */
 int callback_service_mpd_set (const struct _u_request * request, struct _u_response * response, void * user_data) {
-  json_t * result, * mpd;
+  json_t * result, * mpd, * json_body = ulfius_get_json_body_request(request, NULL);
   
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
@@ -305,13 +311,12 @@ int callback_service_mpd_set (const struct _u_request * request, struct _u_respo
     if (mpd != NULL && json_integer_value(json_object_get(mpd, "result")) == WEBSERVICE_RESULT_NOT_FOUND) {
       response->status = 404;
     } else if (mpd != NULL && json_integer_value(json_object_get(mpd, "result")) == WEBSERVICE_RESULT_OK) {
-      result = mpd_set((struct _carleon_config *)user_data, u_map_get(request->map_url, "name"), request->json_body);
+      result = mpd_set((struct _carleon_config *)user_data, u_map_get(request->map_url, "name"), json_body);
       if (result == NULL) {
         y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_mpd_set - Error in mpd_set");
         response->status = 500;
       } else if (json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_PARAM) {
-        response->json_body = json_copy(json_object_get(result, "reason"));
-        response->status = 400;
+        set_response_json_body_and_clean(response, 400, json_copy(json_object_get(result, "reason")));
       }
       json_decref(result);
     } else {
@@ -320,7 +325,8 @@ int callback_service_mpd_set (const struct _u_request * request, struct _u_respo
     }
     json_decref(mpd);
   }
-  return U_OK;
+  json_decref(json_body);
+  return U_CALLBACK_CONTINUE;
 }
 
 /**
@@ -333,7 +339,7 @@ int callback_service_mpd_remove (const struct _u_request * request, struct _u_re
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_mpd_remove - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
     mpd = mpd_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "name"));
     if (mpd != NULL && json_integer_value(json_object_get(mpd, "result")) == WEBSERVICE_RESULT_NOT_FOUND) {
@@ -344,8 +350,7 @@ int callback_service_mpd_remove (const struct _u_request * request, struct _u_re
         y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_mpd_remove - Error in mpd_remove");
         response->status = 500;
       } else if (json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_PARAM) {
-        response->json_body = json_copy(json_object_get(result, "reason"));
-        response->status = 400;
+        set_response_json_body_and_clean(response, 400, json_copy(json_object_get(result, "reason")));
       }
       json_decref(result);
     } else {
@@ -354,7 +359,7 @@ int callback_service_mpd_remove (const struct _u_request * request, struct _u_re
     }
     json_decref(mpd);
   }
-  return U_OK;
+  return U_CALLBACK_CONTINUE;
 }
 
 /**
@@ -447,7 +452,7 @@ int callback_service_mpd_status (const struct _u_request * request, struct _u_re
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_mpd_status - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
     mpd = mpd_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "name"));
     if (mpd == NULL) {
@@ -459,7 +464,7 @@ int callback_service_mpd_status (const struct _u_request * request, struct _u_re
       } else if (json_integer_value(json_object_get(mpd, "result")) == WEBSERVICE_RESULT_OK) {
         result = mpd_get_status((struct _carleon_config *)user_data, json_object_get(mpd, "element"));
         if (result != NULL && json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_OK) {
-          response->json_body = json_copy(json_object_get(result, "status"));
+          set_response_json_body_and_clean(response, 200, json_copy(json_object_get(result, "status")));
         } else {
           response->status = 500;
         }
@@ -471,7 +476,7 @@ int callback_service_mpd_status (const struct _u_request * request, struct _u_re
     }
     json_decref(mpd);
   }
-  return U_OK;
+  return U_CALLBACK_CONTINUE;
 }
 
 /**
@@ -496,15 +501,15 @@ json_t * mpd_set_action(struct _carleon_config * config, json_t * mpd, const cha
     }
     if (auth) {
       to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_OK);
-      if (0 == nstrcmp(action, "stop")) {
+      if (0 == o_strcmp(action, "stop")) {
         if (!mpd_run_stop(conn)) {
           to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
         }
-      } else if (0 == nstrcmp(action, "play")) {
+      } else if (0 == o_strcmp(action, "play")) {
         if (!mpd_run_play(conn)) {
           to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
         }
-      } else if (0 == nstrcmp(action, "pause")) {
+      } else if (0 == o_strcmp(action, "pause")) {
         if (!mpd_run_pause(conn, true)) {
           to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
         }
@@ -530,7 +535,7 @@ int callback_service_mpd_action (const struct _u_request * request, struct _u_re
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_mpd_action - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
     mpd = mpd_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "name"));
     if (mpd == NULL) {
@@ -542,7 +547,7 @@ int callback_service_mpd_action (const struct _u_request * request, struct _u_re
       } else if (json_integer_value(json_object_get(mpd, "result")) == WEBSERVICE_RESULT_OK) {
         result = mpd_set_action((struct _carleon_config *)user_data, json_object_get(mpd, "element"), u_map_get(request->map_url, "action_name"));
         if (result != NULL && json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_OK) {
-          response->json_body = json_copy(json_object_get(result, "status"));
+          set_response_json_body_and_clean(response, 200, json_copy(json_object_get(result, "status")));
         } else {
           response->status = 500;
         }
@@ -554,7 +559,7 @@ int callback_service_mpd_action (const struct _u_request * request, struct _u_re
     }
     json_decref(mpd);
   }
-  return U_OK;
+  return U_CALLBACK_CONTINUE;
 }
 
 /**
@@ -614,7 +619,7 @@ int callback_service_mpd_playlists_get (const struct _u_request * request, struc
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_mpd_playlists_get - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
     mpd = mpd_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "name"));
     if (mpd == NULL) {
@@ -628,7 +633,7 @@ int callback_service_mpd_playlists_get (const struct _u_request * request, struc
         if (result == NULL || json_integer_value(json_object_get(result, "result")) != WEBSERVICE_RESULT_OK) {
           response->status = 500;
         } else {
-          response->json_body = json_copy(json_object_get(result, "list"));
+          set_response_json_body_and_clean(response, 200, json_copy(json_object_get(result, "list")));
         }
         json_decref(result);
       } else {
@@ -638,7 +643,7 @@ int callback_service_mpd_playlists_get (const struct _u_request * request, struc
     }
     json_decref(mpd);
   }
-  return U_OK;
+  return U_CALLBACK_CONTINUE;
 }
 
 /**
@@ -668,7 +673,7 @@ json_t * mpd_load_playlist(struct _carleon_config * config, json_t * mpd, const 
         to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
       } else {
         while ((m_playlist = mpd_recv_playlist(conn)) != NULL) {
-          if (0 == nstrcmp(mpd_playlist_get_path(m_playlist), playlist)) {
+          if (0 == o_strcmp(mpd_playlist_get_path(m_playlist), playlist)) {
             found = 1;
           }
           mpd_playlist_free(m_playlist);
@@ -703,7 +708,7 @@ int callback_service_mpd_playlists_load (const struct _u_request * request, stru
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_mpd_playlists_load - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
     mpd = mpd_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "name"));
     if (mpd == NULL) {
@@ -727,7 +732,7 @@ int callback_service_mpd_playlists_load (const struct _u_request * request, stru
     }
     json_decref(mpd);
   }
-  return U_OK;
+  return U_CALLBACK_CONTINUE;
 }
 
 /**
@@ -777,7 +782,7 @@ int callback_service_mpd_volume_set (const struct _u_request * request, struct _
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_mpd_volume_set - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
     mpd = mpd_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "name"));
     if (mpd == NULL) {
@@ -790,11 +795,9 @@ int callback_service_mpd_volume_set (const struct _u_request * request, struct _
         char * ptr;
         volume = strtol(u_map_get(request->map_url, "volume"), &ptr, 10);
         if (ptr == u_map_get(request->map_url, "volume")) {
-          response->status = 400;
-          response->json_body = json_pack("{ss}", "error", "Volume invalid");
+          set_response_json_body_and_clean(response, 400, json_pack("{ss}", "error", "Volume invalid"));
         } else if (volume < 0 || volume > 100) {
-          response->status = 400;
-          response->json_body = json_pack("{ss}", "error", "Volume invalid");
+          set_response_json_body_and_clean(response, 400, json_pack("{ss}", "error", "Volume invalid"));
         } else {
           result = mpd_set_volume((struct _carleon_config *)user_data, json_object_get(mpd, "element"), volume);
           if (result == NULL || json_integer_value(json_object_get(result, "result")) != WEBSERVICE_RESULT_OK) {
@@ -809,7 +812,7 @@ int callback_service_mpd_volume_set (const struct _u_request * request, struct _
     }
     json_decref(mpd);
   }
-  return U_OK;
+  return U_CALLBACK_CONTINUE;
 }
 
 /**
@@ -818,17 +821,17 @@ int callback_service_mpd_volume_set (const struct _u_request * request, struct _
 json_t * c_service_init(struct _carleon_config * config) {
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (config != NULL) {
-    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-mpd/", NULL, NULL, NULL, &callback_service_mpd_get, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-mpd/@name", NULL, NULL, NULL, &callback_service_mpd_get, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "POST", config->url_prefix, "/service-mpd/", NULL, NULL, NULL, &callback_service_mpd_add, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-mpd/@name", NULL, NULL, NULL, &callback_service_mpd_set, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "DELETE", config->url_prefix, "/service-mpd/@name", NULL, NULL, NULL, &callback_service_mpd_remove, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-mpd/", 2, &callback_service_mpd_get, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-mpd/@name", 2, &callback_service_mpd_get, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "POST", config->url_prefix, "/service-mpd/", 2, &callback_service_mpd_add, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-mpd/@name", 2, &callback_service_mpd_set, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "DELETE", config->url_prefix, "/service-mpd/@name", 2, &callback_service_mpd_remove, (void*)config);
 
-    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-mpd/@name/status", NULL, NULL, NULL, &callback_service_mpd_status, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-mpd/@name/action/@action_name", NULL, NULL, NULL, &callback_service_mpd_action, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-mpd/@name/playlists", NULL, NULL, NULL, &callback_service_mpd_playlists_get, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-mpd/@name/playlist/@playlist_name", NULL, NULL, NULL, &callback_service_mpd_playlists_load, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-mpd/@name/volume/@volume", NULL, NULL, NULL, &callback_service_mpd_volume_set, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-mpd/@name/status", 2, &callback_service_mpd_status, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-mpd/@name/action/@action_name", 2, &callback_service_mpd_action, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-mpd/@name/playlists", 2, &callback_service_mpd_playlists_get, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-mpd/@name/playlist/@playlist_name", 2, &callback_service_mpd_playlists_load, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-mpd/@name/volume/@volume", 2, &callback_service_mpd_volume_set, (void*)config);
     return json_pack("{sissss}", 
                       "result", WEBSERVICE_RESULT_OK,
                       "name", "service-mpd",
@@ -892,11 +895,11 @@ json_t * c_service_exec(struct _carleon_config * config, const char * command, c
     if (mpd == NULL || json_integer_value(json_object_get(mpd, "result")) != WEBSERVICE_RESULT_OK) {
       result = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
     } else {
-      if (0 == nstrcmp(command, "action")) {
+      if (0 == o_strcmp(command, "action")) {
         result = mpd_set_action(config, json_object_get(mpd, "element"), json_string_value(json_object_get(parameters, "action")));
-      } else if (0 == nstrcmp(command, "load_playlist")) {
+      } else if (0 == o_strcmp(command, "load_playlist")) {
         result = mpd_load_playlist(config, json_object_get(mpd, "element"), json_string_value(json_object_get(parameters, "playlist")));
-      } else if (0 == nstrcmp(command, "set_volume")) {
+      } else if (0 == o_strcmp(command, "set_volume")) {
         result = mpd_set_volume(config, json_object_get(mpd, "element"), json_integer_value(json_object_get(parameters, "volume")));
       } else {
         result = json_pack("{si}", "result", WEBSERVICE_RESULT_NOT_FOUND);

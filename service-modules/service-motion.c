@@ -45,6 +45,12 @@
 json_t * service_motion_get(struct _carleon_config * config, const char * service_name);
 int has_service_motion(struct _carleon_config * config, const char * service_name);
 
+int set_response_json_body_and_clean(struct _u_response * response, uint status, json_t * json_body) {
+  int res = ulfius_set_json_body_response(response, status, json_body);
+  json_decref(json_body);
+  return res;
+}
+
 /**
  * Return a json array containing errors in the service_motion parameter
  * r an empty array if no error
@@ -524,11 +530,11 @@ int callback_service_motion_get (const struct _u_request * request, struct _u_re
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_motion_get - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
     j_service_motion = service_motion_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "name"));
     if (j_service_motion != NULL && json_integer_value(json_object_get(j_service_motion, "result")) == WEBSERVICE_RESULT_OK) {
-      response->json_body = json_copy(json_object_get(j_service_motion, "element"));
+      set_response_json_body_and_clean(response, 200, json_copy(json_object_get(j_service_motion, "element")));
     } else if (j_service_motion != NULL && json_integer_value(json_object_get(j_service_motion, "result")) == WEBSERVICE_RESULT_NOT_FOUND) {
       response->status = 404;
     } else {
@@ -537,57 +543,57 @@ int callback_service_motion_get (const struct _u_request * request, struct _u_re
     }
     json_decref(j_service_motion);
   }
-  return U_OK;
+  return U_CALLBACK_CONTINUE;
 }
 
 /**
  * Callback function to add a motion service
  */
 int callback_service_motion_add (const struct _u_request * request, struct _u_response * response, void * user_data) {
-  json_t * result;
+  json_t * result, * json_body = ulfius_get_json_body_request(request, NULL);
   
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_motion_add - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
-    result = service_motion_add((struct _carleon_config *)user_data, request->json_body);
+    result = service_motion_add((struct _carleon_config *)user_data, json_body);
     if (result == NULL) {
       y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_motion_add - Error in service_motion_add");
       response->status = 500;
     } else if (json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_PARAM) {
-      response->json_body = json_copy(json_object_get(result, "reason"));
-      response->status = 400;
+      set_response_json_body_and_clean(response, 400, json_copy(json_object_get(result, "reason")));
     }
     json_decref(result);
   }
-  return U_OK;
+  json_decref(json_body);
+  return U_CALLBACK_CONTINUE;
 }
 
 /**
  * Callback function to modify a motion service
  */
 int callback_service_motion_set (const struct _u_request * request, struct _u_response * response, void * user_data) {
-  json_t * result;
+  json_t * result, * json_body = ulfius_get_json_body_request(request, NULL);
   
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_motion_add - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else if (!has_service_motion((struct _carleon_config *)user_data, u_map_get(request->map_url, "name"))) {
     response->status = 404;
   } else {
-    result = service_motion_set((struct _carleon_config *)user_data, u_map_get(request->map_url, "name"), request->json_body);
+    result = service_motion_set((struct _carleon_config *)user_data, u_map_get(request->map_url, "name"), json_body);
     if (result == NULL || json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_ERROR) {
       y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_motion_add - Error in service_motion_set");
       response->status = 500;
     } else if (json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_PARAM) {
-      response->json_body = json_copy(json_object_get(result, "reason"));
-      response->status = 400;
+      set_response_json_body_and_clean(response, 400, json_copy(json_object_get(result, "reason")));
     }
     json_decref(result);
   }
-  return U_OK;
+  json_decref(json_body);
+  return U_CALLBACK_CONTINUE;
 }
 
 /**
@@ -599,7 +605,7 @@ int callback_service_motion_remove (const struct _u_request * request, struct _u
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_motion_remove - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else if (!has_service_motion((struct _carleon_config *)user_data, u_map_get(request->map_url, "name"))) {
     response->status = 404;
   } else {
@@ -608,12 +614,11 @@ int callback_service_motion_remove (const struct _u_request * request, struct _u
       y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_motion_remove - Error in service_motion_set");
       response->status = 500;
     } else if (json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_PARAM) {
-      response->json_body = json_copy(json_object_get(result, "reason"));
-      response->status = 400;
+      set_response_json_body_and_clean(response, 400, json_copy(json_object_get(result, "reason")));
     }
     json_decref(result);
   }
-  return U_OK;
+  return U_CALLBACK_CONTINUE;
 }
 
 /**
@@ -634,7 +639,7 @@ int insert_in_array_sort(json_t * array, const char * value) {
 		return 0;
 	} else {
 		json_array_foreach(array, index, element) {
-			if (0 > nstrcmp(value, json_string_value(element))) {
+			if (0 > o_strcmp(value, json_string_value(element))) {
 				json_array_insert_new(array, index, json_string(value));
 				return 1;
 			}
@@ -657,7 +662,7 @@ json_t * get_available_files(const char * path, size_t count, size_t offset) {
 	y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
 	if ((dir = opendir (path)) != NULL && list != NULL && orig_list != NULL) {
 		while ((ent = readdir (dir)) != NULL) {
-			if (0 == nstrcasecmp(get_filename_ext(ent->d_name), ".jpg")) {
+			if (0 == o_strcasecmp(get_filename_ext(ent->d_name), ".jpg")) {
 				full_path = msprintf("%s/%s", path, ent->d_name);
 				if (access(full_path, F_OK) != -1) {
 					insert_in_array_sort(orig_list, ent->d_name);
@@ -693,7 +698,7 @@ int is_motion_online(struct _carleon_config * config, json_t * service_motion) {
   
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   ulfius_init_request(&c_request);
-  c_request.http_url = nstrdup(json_string_value(json_object_get(json_object_get(service_motion, "element"), "config_uri")));
+  c_request.http_url = o_strdup(json_string_value(json_object_get(json_object_get(service_motion, "element"), "config_uri")));
 	if (ulfius_send_http_request(&c_request, NULL) != U_OK) {
 		to_return = 0;
 	}
@@ -752,7 +757,7 @@ int is_motion_online(struct _carleon_config * config, json_t * service_motion) {
 			
 			// get stream names
 			json_object_set_new(to_return, "stream_list", json_copy(json_object_get(json_object_get(service_motion, "element"), "stream_list")));
-			response->json_body = to_return;
+      set_response_json_body_and_clean(response, 200, to_return);
 		} else {
 			y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_motion_status - Error allocating resources for to_return");
 			response->status = 500;
@@ -763,7 +768,7 @@ int is_motion_online(struct _carleon_config * config, json_t * service_motion) {
 		response->status = 500;
   }
   json_decref(service_motion);
-  return U_OK;
+  return U_CALLBACK_CONTINUE;
 }
 
 /**
@@ -858,7 +863,7 @@ int callback_service_motion_image (const struct _u_request * request, struct _u_
 	y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (service_motion != NULL && json_integer_value(json_object_get(service_motion, "result")) == WEBSERVICE_RESULT_OK) {
 		json_array_foreach(json_object_get(json_object_get(service_motion, "element"), "file_list"), index, element) {
-			if (0 == nstrcmp(json_string_value(json_object_get(element, "name")), u_map_get(request->map_url, "image_list"))) {
+			if (0 == o_strcmp(json_string_value(json_object_get(element, "name")), u_map_get(request->map_url, "image_list"))) {
 				file_list = element;
 			}
 		}
@@ -874,8 +879,7 @@ int callback_service_motion_image (const struct _u_request * request, struct _u_
 							response->status = 500;
 						}
 					} else {
-						response->status = 404;
-						response->json_body = json_pack("{ss}", "result", "Image not found");
+            set_response_json_body_and_clean(response, 404, json_pack("{ss}", "result", "Image not found"));
 					}
 					free(thumbnail_path);
 				} else {
@@ -898,7 +902,7 @@ int callback_service_motion_image (const struct _u_request * request, struct _u_
 		response->status = 500;
   }
   json_decref(service_motion);
-  return U_OK;
+  return U_CALLBACK_CONTINUE;
 }
 
 /**
@@ -913,13 +917,13 @@ int send_snapshot_command(struct _carleon_config * config, const char * element_
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (service_motion != NULL && json_integer_value(json_object_get(service_motion, "result")) == WEBSERVICE_RESULT_OK) {
 		json_array_foreach(json_object_get(json_object_get(service_motion, "element"), "stream_list"), index, element) {
-			if (0 == nstrcmp(json_string_value(json_object_get(element, "name")), stream_name)) {
+			if (0 == o_strcmp(json_string_value(json_object_get(element, "name")), stream_name)) {
 				stream = element;
 			}
 		}
 		if (stream != NULL && json_string_value(json_object_get(stream, "snapshot_uri")) != NULL) {
 			ulfius_init_request(&c_request);
-			c_request.http_url = nstrdup(json_string_value(json_object_get(stream, "snapshot_uri")));
+			c_request.http_url = o_strdup(json_string_value(json_object_get(stream, "snapshot_uri")));
 			res = ulfius_send_http_request(&c_request, NULL);
 			if (res != U_OK) {
 				to_return = WEBSERVICE_RESULT_ERROR;
@@ -956,7 +960,7 @@ int callback_service_motion_snapshot (const struct _u_request * request, struct 
 			response->status = 500;
 		}
 	}
-	return U_OK;
+	return U_CALLBACK_CONTINUE;
 }
 
 /**
@@ -965,15 +969,15 @@ int callback_service_motion_snapshot (const struct _u_request * request, struct 
 json_t * c_service_init(struct _carleon_config * config) {
 	y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (config != NULL) {
-    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-motion/", NULL, NULL, NULL, &callback_service_motion_get, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-motion/@name", NULL, NULL, NULL, &callback_service_motion_get, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "POST", config->url_prefix, "/service-motion/", NULL, NULL, NULL, &callback_service_motion_add, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-motion/@name", NULL, NULL, NULL, &callback_service_motion_set, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "DELETE", config->url_prefix, "/service-motion/@name", NULL, NULL, NULL, &callback_service_motion_remove, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-motion/", 2, &callback_service_motion_get, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-motion/@name", 2, &callback_service_motion_get, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "POST", config->url_prefix, "/service-motion/", 2, &callback_service_motion_add, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-motion/@name", 2, &callback_service_motion_set, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "DELETE", config->url_prefix, "/service-motion/@name", 2, &callback_service_motion_remove, (void*)config);
 
-    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-motion/@name/status", NULL, NULL, NULL, &callback_service_motion_status, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-motion/@name/image/@image_list/@image_file", NULL, NULL, NULL, &callback_service_motion_image, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-motion/@name/stream/@stream_name/snapshot", NULL, NULL, NULL, &callback_service_motion_snapshot, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-motion/@name/status", 2, &callback_service_motion_status, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-motion/@name/image/@image_list/@image_file", 2, &callback_service_motion_image, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-motion/@name/stream/@stream_name/snapshot", 2, &callback_service_motion_snapshot, (void*)config);
 
     return json_pack("{sissss}", 
                       "result", WEBSERVICE_RESULT_OK,

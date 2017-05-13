@@ -288,7 +288,7 @@ int service_element_remove_tag(struct _carleon_config * config, const char * ser
   json_decref(j_service);
   
   for (index = json_array_size(tags)-1; index >= 0; index--) {
-    if (0 == nstrcmp(json_string_value(json_array_get(tags, index)), tag)) {
+    if (0 == o_strcmp(json_string_value(json_array_get(tags, index)), tag)) {
       json_array_remove(tags, index);
     }
   }

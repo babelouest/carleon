@@ -22,6 +22,12 @@
 #include <yder.h>
 #include "../carleon.h"
 
+int set_response_json_body_and_clean(struct _u_response * response, uint status, json_t * json_body) {
+  int res = ulfius_set_json_body_response(response, status, json_body);
+  json_decref(json_body);
+  return res;
+}
+
 /**
  * The returned value is used by events conditions
  * 
@@ -35,7 +41,7 @@ json_t * c_service_exec(struct _carleon_config * config, const char * command, c
   char * str_parameters = json_dumps(parameters, JSON_COMPACT);
   y_log_message(Y_LOG_LEVEL_INFO, "mock-service - Executing command '%s' to element '%s' with parameters %s", command, element, str_parameters);
   free(str_parameters);
-  if (0 == nstrcmp(command, "exec1") || 0 == nstrcmp(command, "exec4")) {
+  if (0 == o_strcmp(command, "exec1") || 0 == o_strcmp(command, "exec4")) {
     return json_pack("{sis{siso}}", "result", WEBSERVICE_RESULT_OK, "value", "value1", 1, "value2", json_true());
   } else {
     return json_pack("{siss}", "result", WEBSERVICE_RESULT_OK, "value", "ok");
@@ -154,11 +160,11 @@ int callback_mock_service_command (const struct _u_request * request, struct _u_
   float f_param3;
   json_t * parameters, * j_result;
   
-  if (nstrcmp(u_map_get(request->map_url, "command_name"), "exec1") == 0 && u_map_has_key(request->map_url, "param2") && u_map_has_key(request->map_url, "param3")) {
+  if (o_strcmp(u_map_get(request->map_url, "command_name"), "exec1") == 0 && u_map_has_key(request->map_url, "param2") && u_map_has_key(request->map_url, "param3")) {
     i_param2 = strtol(u_map_get(request->map_url, "param2"), NULL, 10);
     f_param3 = strtof(u_map_get(request->map_url, "param3"), NULL);
     parameters = json_pack("{sssisf}", "param1", u_map_get(request->map_url, "param1"), "param2", i_param2, "param3", f_param3);
-  } else if (nstrcmp(u_map_get(request->map_url, "command_name"), "exec2") == 0) {
+  } else if (o_strcmp(u_map_get(request->map_url, "command_name"), "exec2") == 0) {
     parameters = json_pack("{ss}", "param1", u_map_get(request->map_url, "param1"));
   } else {
     parameters = json_object();
@@ -167,47 +173,52 @@ int callback_mock_service_command (const struct _u_request * request, struct _u_
   j_result = c_service_exec((struct _carleon_config *)user_data, u_map_get(request->map_url, "command_name"), u_map_get(request->map_url, "element_id"), parameters);
   if (j_result == NULL || json_integer_value(json_object_get(j_result, "result")) != WEBSERVICE_RESULT_OK) {
     response->status = 500;
+  } else {
+    json_object_del(j_result, "result");
+    set_response_json_body_and_clean(response, 200, j_result);
   }
-  json_object_del(j_result, "result");
-  response->json_body = j_result;
   json_decref(parameters);
-  return U_OK;
+  return U_CALLBACK_CONTINUE;
 }
 
 int callback_mock_service (const struct _u_request * request, struct _u_response * response, void * user_data) {
-  if (0 == nstrcmp(request->http_verb, "GET")) {
+  if (0 == o_strcmp(request->http_verb, "GET")) {
     json_t * element = mock_element_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "element_id"));
     if (json_integer_value(json_object_get(element, "result")) == WEBSERVICE_RESULT_ERROR) {
       response->status = 500;
     } else if (json_integer_value(json_object_get(element, "result")) == WEBSERVICE_RESULT_NOT_FOUND) {
       response->status = 404;
     } else {
-      response->json_body = json_copy(json_object_get(element, "element"));
+      set_response_json_body_and_clean(response, 200, json_copy(json_object_get(element, "element")));
     }
     json_decref(element);
-  } else if (0 == nstrcmp(request->http_verb, "POST")) {
-    if (json_object_get(request->json_body, "name") != NULL && json_is_string(json_object_get(request->json_body, "name")) && json_string_length(json_object_get(request->json_body, "name")) <= 64 &&
-        json_object_get(request->json_body, "description") != NULL && json_is_string(json_object_get(request->json_body, "description")) && json_string_length(json_object_get(request->json_body, "description")) <= 128) {
-      int res = mock_element_add((struct _carleon_config *)user_data, request->json_body);
+  } else if (0 == o_strcmp(request->http_verb, "POST")) {
+    json_t * json_body = ulfius_get_json_body_request(request, NULL);
+    if (json_object_get(json_body, "name") != NULL && json_is_string(json_object_get(json_body, "name")) && json_string_length(json_object_get(json_body, "name")) <= 64 &&
+        json_object_get(json_body, "description") != NULL && json_is_string(json_object_get(json_body, "description")) && json_string_length(json_object_get(json_body, "description")) <= 128) {
+      int res = mock_element_add((struct _carleon_config *)user_data, json_body);
       if (res == WEBSERVICE_RESULT_ERROR) {
         response->status = 500;
       }
     } else {
       response->status = 400;
     }
-  } else if (0 == nstrcmp(request->http_verb, "PUT")) {
+    json_decref(json_body);
+  } else if (0 == o_strcmp(request->http_verb, "PUT")) {
     json_t * element = mock_element_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "element_id"));
+    json_t * json_body = ulfius_get_json_body_request(request, NULL);
     if (element == NULL) {
       response->status = 404;
-    } else if (json_object_get(request->json_body, "description") != NULL && json_is_string(json_object_get(request->json_body, "description")) && json_string_length(json_object_get(request->json_body, "description")) <= 128) {
-      if (mock_element_modify((struct _carleon_config *)user_data, u_map_get(request->map_url, "element_id"), request->json_body) == WEBSERVICE_RESULT_ERROR) {
+    } else if (json_object_get(json_body, "description") != NULL && json_is_string(json_object_get(json_body, "description")) && json_string_length(json_object_get(json_body, "description")) <= 128) {
+      if (mock_element_modify((struct _carleon_config *)user_data, u_map_get(request->map_url, "element_id"), json_body) == WEBSERVICE_RESULT_ERROR) {
         response->status = 500;
       }
     } else {
       response->status = 400;
     }
+    json_decref(json_body);
     json_decref(element);
-  } else if (0 == nstrcmp(request->http_verb, "DELETE")) {
+  } else if (0 == o_strcmp(request->http_verb, "DELETE")) {
     json_t * element = mock_element_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "element_id"));
     if (element == NULL) {
       response->status = 404;
@@ -216,19 +227,19 @@ int callback_mock_service (const struct _u_request * request, struct _u_response
     }
     json_decref(element);
   }
-  return U_OK;
+  return U_CALLBACK_CONTINUE;
 }
 
 json_t * c_service_init(struct _carleon_config * config) {
   if (config != NULL) {
-    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/mock-service/@element_id", NULL, NULL, NULL, &callback_mock_service, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/mock-service/", NULL, NULL, NULL, &callback_mock_service, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "POST", config->url_prefix, "/mock-service/", NULL, NULL, NULL, &callback_mock_service, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/mock-service/@element_id", NULL, NULL, NULL, &callback_mock_service, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "DELETE", config->url_prefix, "/mock-service/@element_id", NULL, NULL, NULL, &callback_mock_service, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/mock-service/@element_id/command/@command_name/@param1/@param2/@param3", NULL, NULL, NULL, &callback_mock_service_command, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/mock-service/@element_id/command/@command_name/@param1/", NULL, NULL, NULL, &callback_mock_service_command, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/mock-service/@element_id/command/@command_name/", NULL, NULL, NULL, &callback_mock_service_command, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/mock-service/@element_id", 2, &callback_mock_service, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/mock-service/", 2, &callback_mock_service, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "POST", config->url_prefix, "/mock-service/", 2, &callback_mock_service, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/mock-service/@element_id", 2, &callback_mock_service, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "DELETE", config->url_prefix, "/mock-service/@element_id", 2, &callback_mock_service, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/mock-service/@element_id/command/@command_name/@param1/@param2/@param3", 2, &callback_mock_service_command, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/mock-service/@element_id/command/@command_name/@param1/", 2, &callback_mock_service_command, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/mock-service/@element_id/command/@command_name/", 2, &callback_mock_service_command, (void*)config);
     
     return json_pack("{sissss}", 
                       "result", WEBSERVICE_RESULT_OK,

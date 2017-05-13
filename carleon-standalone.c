@@ -26,6 +26,7 @@
 #include <libconfig.h>
 #include <getopt.h>
 #include <signal.h>
+#include <string.h>
 
 #include "carleon.h"
 
@@ -84,7 +85,7 @@ int build_config_from_args(int argc, char ** argv, struct config_elements * conf
       switch (next_option) {
         case 'c':
           if (optarg != NULL) {
-            config->config_file = nstrdup(optarg);
+            config->config_file = o_strdup(optarg);
             if (config->config_file == NULL) {
               fprintf(stderr, "Error allocating config->config_file, exiting\n");
               exit_server(&config, CARLEON_STOP);
@@ -108,7 +109,7 @@ int build_config_from_args(int argc, char ** argv, struct config_elements * conf
           break;
         case 'u':
           if (optarg != NULL) {
-            config->c_config->url_prefix = nstrdup(optarg);
+            config->c_config->url_prefix = o_strdup(optarg);
             if (config->c_config->url_prefix == NULL) {
               fprintf(stderr, "Error allocating config->c_config->url_prefix, exiting\n");
               exit_server(&config, CARLEON_STOP);
@@ -120,7 +121,7 @@ int build_config_from_args(int argc, char ** argv, struct config_elements * conf
           break;
         case 'm':
           if (optarg != NULL) {
-            tmp = nstrdup(optarg);
+            tmp = o_strdup(optarg);
             if (tmp == NULL) {
               fprintf(stderr, "Error allocating log_mode, exiting\n");
               exit_server(&config, CARLEON_STOP);
@@ -162,7 +163,7 @@ int build_config_from_args(int argc, char ** argv, struct config_elements * conf
           break;
         case 'f':
           if (optarg != NULL) {
-            config->log_file = nstrdup(optarg);
+            config->log_file = o_strdup(optarg);
             if (config->log_file == NULL) {
               fprintf(stderr, "Error allocating config->log_file, exiting\n");
               exit_server(&config, CARLEON_STOP);
@@ -174,7 +175,7 @@ int build_config_from_args(int argc, char ** argv, struct config_elements * conf
           break;
         case '0':
           if (optarg != NULL) {
-            config->c_config->services_path = nstrdup(optarg);
+            config->c_config->services_path = o_strdup(optarg);
           } else {
             fprintf(stderr, "Error!\nNo modules path specified\n");
             return 0;
@@ -273,7 +274,7 @@ int build_config_from_file(struct config_elements * config) {
   config_setting_t * root, * database;
   const char * cur_prefix, * cur_log_mode, * cur_log_level, * cur_log_file = NULL, * one_log_mode, * services_path, 
              * db_type, * db_sqlite_path, * db_mariadb_host = NULL, * db_mariadb_user = NULL, * db_mariadb_password = NULL, * db_mariadb_dbname = NULL;
-  int db_mariadb_port = 0;
+  int db_mariadb_port = 0, port;
   
   config_init(&cfg);
   
@@ -283,15 +284,13 @@ int build_config_from_file(struct config_elements * config) {
     return 0;
   }
   
-  if (config->c_config->instance->port == -1) {
-    // Get Port number to listen to
-    config_lookup_int(&cfg, "port", &(config->c_config->instance->port));
-  }
+  config_lookup_int(&cfg, "port", &port);
+  config->c_config->instance->port = port;
   
   if (config->c_config->url_prefix == NULL) {
     // Get prefix url
     if (config_lookup_string(&cfg, "url_prefix", &cur_prefix)) {
-      config->c_config->url_prefix = nstrdup(cur_prefix);
+      config->c_config->url_prefix = o_strdup(cur_prefix);
       if (config->c_config->url_prefix == NULL) {
         fprintf(stderr, "Error allocating config->c_config->url_prefix, exiting\n");
         config_destroy(&cfg);
@@ -303,7 +302,7 @@ int build_config_from_file(struct config_elements * config) {
   if (config->c_config->services_path == NULL) {
     // Get modules path
     if (config_lookup_string(&cfg, "services_path", &services_path)) {
-      config->c_config->services_path = nstrdup(services_path);
+      config->c_config->services_path = o_strdup(services_path);
       if (config->c_config->services_path == NULL) {
         fprintf(stderr, "Error allocating config->c_config->services_path, exiting\n");
         config_destroy(&cfg);
@@ -326,7 +325,7 @@ int build_config_from_file(struct config_elements * config) {
           // Get log file path
           if (config->log_file == NULL) {
             if (config_lookup_string(&cfg, "log_file", &cur_log_file)) {
-              config->log_file = nstrdup(cur_log_file);
+              config->log_file = o_strdup(cur_log_file);
               if (config->log_file == NULL) {
                 fprintf(stderr, "Error allocating config->log_file, exiting\n");
                 config_destroy(&cfg);
@@ -417,12 +416,8 @@ int build_config_from_file(struct config_elements * config) {
  */
 int check_config(struct config_elements * config) {
 
-  if (config->c_config->instance->port == -1) {
-    config->c_config->instance->port = CARLEON_DEFAULT_PORT;
-  }
-  
   if (config->c_config->url_prefix == NULL) {
-    config->c_config->url_prefix = nstrdup(CARLEON_DEFAULT_PREFIX);
+    config->c_config->url_prefix = o_strdup(CARLEON_DEFAULT_PREFIX);
     if (config->c_config->url_prefix == NULL) {
       fprintf(stderr, "Error allocating url_prefix, exit\n");
       return 0;
@@ -447,9 +442,8 @@ int check_config(struct config_elements * config) {
 }
 
 int callback_default (const struct _u_request * request, struct _u_response * response, void * user_data) {
-  response->json_body = json_pack("{ssssss}", "error", "page not found", "message", "The page can not be found, check documentation", "url", request->http_url);
-  response->status = 404;
-  return H_OK;
+  set_response_json_body_and_clean(response, 404, json_pack("{ssssss}", "error", "page not found", "message", "The page can not be found, check documentation", "url", request->http_url));
+  return U_CALLBACK_CONTINUE;
 }
 
 /**
@@ -492,7 +486,7 @@ int main(int argc, char ** argv) {
   config->c_config->services_path = NULL;
   config->c_config->conn = NULL;
   config->c_config->service_list = NULL;
-  ulfius_init_instance(config->c_config->instance, -1, NULL);
+  ulfius_init_instance(config->c_config->instance, CARLEON_DEFAULT_PORT, NULL, NULL);
 
   // First we parse command line arguments
   if (!build_config_from_args(argc, argv, config)) {
@@ -521,7 +515,7 @@ int main(int argc, char ** argv) {
   }
   
   // Default endpoint
-  ulfius_set_default_endpoint(config->c_config->instance, NULL, NULL, NULL, &callback_default, (void*)config);
+  ulfius_set_default_endpoint(config->c_config->instance, &callback_default, (void*)config);
   
   // Start the webservice
   y_log_message(Y_LOG_LEVEL_INFO, "Start carleon on port %d, prefix: %s", config->c_config->instance->port, config->c_config->url_prefix);
@@ -537,4 +531,10 @@ int main(int argc, char ** argv) {
   close_carleon(config->c_config);
   exit_server(&config, CARLEON_STOP);
   return 0;
+}
+
+int set_response_json_body_and_clean(struct _u_response * response, uint status, json_t * json_body) {
+  int res = ulfius_set_json_body_response(response, status, json_body);
+  json_decref(json_body);
+  return res;
 }

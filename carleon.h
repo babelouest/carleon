@@ -91,6 +91,7 @@ int close_service_list(struct _carleon_config * config);
 void close_service(struct _carleon_service * service, struct _carleon_config * config);
 int connect_enabled_services(struct _carleon_config * config);
 int disconnect_all_services(struct _carleon_config * config);
+int set_response_json_body_and_clean(struct _u_response * response, uint status, json_t * json_body);
 
 // services core functions
 json_t * service_get(struct _carleon_config * config, const char * service);
