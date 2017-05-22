@@ -43,6 +43,12 @@
 #define LIQUIDSOAP_FIELDS "$title$artist$albumartist$year$album$"
 #define LIQUIDSOAP_COMMANDS "$skip$stop$start$status$remaining$"
 
+int set_response_json_body_and_clean(struct _u_response * response, uint status, json_t * json_body) {
+  int res = ulfius_set_json_body_response(response, status, json_body);
+  json_decref(json_body);
+  return res;
+}
+
 /**
  * get the specified liquidsoap or all liquidsoap
  */
@@ -118,7 +124,7 @@ json_t * is_liquidsoap_valid(struct _carleon_config * config, json_t * liquidsoa
     if (add) {
       j_result = liquidsoap_get(config, NULL);
       json_array_foreach(json_object_get(j_result, "element"), index, element) {
-        if (0 == nstrcmp(json_string_value(json_object_get(element, "name")), json_string_value(json_object_get(liquidsoap, "name")))) {
+        if (0 == o_strcmp(json_string_value(json_object_get(element, "name")), json_string_value(json_object_get(liquidsoap, "name")))) {
           json_array_append_new(to_return, json_pack("{ss}", "name", "a liquidsoap service with the same name already exist"));
         }
       }
@@ -322,14 +328,14 @@ json_t * liquidsoap_list(struct _carleon_config * config, json_t * liquidsoap) {
 		result_save = result;
 		token = strtok_r(result_save, "\n", &saveptr);
 		while (token != NULL) {
-			if (nstrncmp(token, "--- ", 4 * sizeof(char)) == 0 && nstrncmp(token + strlen(token) - 4, " ---", 4 * sizeof(char)) == 0) {
+			if (o_strncmp(token, "--- ", 4 * sizeof(char)) == 0 && o_strncmp(token + strlen(token) - 4, " ---", 4 * sizeof(char)) == 0) {
 				// New song
 				if (cur_song != NULL) {
 					json_array_insert_new(json_object_get(to_return, "list"), 0, cur_song);
 				}
 				cur_song = json_object();
 			} else if (cur_song != NULL) {
-				if (0 != nstrncmp(token, "END", strlen("END")) && 0 != nstrncmp(token, "Bye!", strlen("Bye!"))) {
+				if (0 != o_strncmp(token, "END", strlen("END")) && 0 != o_strncmp(token, "Bye!", strlen("Bye!"))) {
 					char * key, * value;
 					if (strchr(token, '=') != NULL) {
 						key = strndup(token, strchr(token, '=') - token);
@@ -338,7 +344,7 @@ json_t * liquidsoap_list(struct _carleon_config * config, json_t * liquidsoap) {
 							value[strlen(value) - 1] = '\0';
 						}
 						tmp = msprintf("$%s$", key);
-						if (nstrstr(LIQUIDSOAP_FIELDS, tmp) != NULL) {
+						if (o_strstr(LIQUIDSOAP_FIELDS, tmp) != NULL) {
 							json_object_set_new(cur_song, key, json_string(value));
 						}
 						free(tmp);
@@ -375,7 +381,7 @@ json_t * liquidsoap_on_air(struct _carleon_config * config, json_t * liquidsoap)
 		result_save = result;
 		token = strtok_r(result_save, "\n", &saveptr);
 		while (token != NULL) {
-			if (0 != nstrncmp(token, "END", strlen("END")) && 0 != nstrncmp(token, "Bye!", strlen("Bye!"))) {
+			if (0 != o_strncmp(token, "END", strlen("END")) && 0 != o_strncmp(token, "Bye!", strlen("Bye!"))) {
 				char * key, * value;
 				if (strchr(token, '=') != NULL) {
 					key = strndup(token, strchr(token, '=') - token);
@@ -384,7 +390,7 @@ json_t * liquidsoap_on_air(struct _carleon_config * config, json_t * liquidsoap)
 						value[strlen(value) - 1] = '\0';
 					}
 					tmp = msprintf("$%s$", key);
-					if (nstrstr(LIQUIDSOAP_FIELDS, tmp) != NULL) {
+					if (o_strstr(LIQUIDSOAP_FIELDS, tmp) != NULL) {
 						json_object_set_new(cur_song, key, json_string(value));
 					}
 					free(tmp);
@@ -445,11 +451,11 @@ int callback_service_liquidsoap_get (const struct _u_request * request, struct _
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_liquidsoap_get - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
     j_service_liquidsoap = liquidsoap_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "element_id"));
     if (j_service_liquidsoap != NULL && json_integer_value(json_object_get(j_service_liquidsoap, "result")) == WEBSERVICE_RESULT_OK) {
-      response->json_body = json_copy(json_object_get(j_service_liquidsoap, "element"));
+      set_response_json_body_and_clean(response, 200, json_copy(json_object_get(j_service_liquidsoap, "element")));
     } else if (j_service_liquidsoap != NULL && json_integer_value(json_object_get(j_service_liquidsoap, "result")) == WEBSERVICE_RESULT_NOT_FOUND) {
       response->status = 404;
     } else {
@@ -458,7 +464,7 @@ int callback_service_liquidsoap_get (const struct _u_request * request, struct _
     }
     json_decref(j_service_liquidsoap);
   }
-  return U_OK;
+  return U_CALLBACK_CONTINUE;
 }
 
 /**
@@ -466,24 +472,24 @@ int callback_service_liquidsoap_get (const struct _u_request * request, struct _
  * add the specified liquidsoap
  */
 int callback_service_liquidsoap_add (const struct _u_request * request, struct _u_response * response, void * user_data) {
-  json_t * result;
+  json_t * result, * json_body = ulfius_get_json_body_request(request, NULL);
   
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_liquidsoap_add - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
-    result = liquidsoap_add((struct _carleon_config *)user_data, request->json_body);
+    result = liquidsoap_add((struct _carleon_config *)user_data, json_body);
     if (result == NULL) {
       y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_liquidsoap_add - Error in liquidsoap_add");
       response->status = 500;
     } else if (json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_PARAM) {
-      response->json_body = json_copy(json_object_get(result, "reason"));
-      response->status = 400;
+      set_response_json_body_and_clean(response, 400, json_copy(json_object_get(result, "reason")));
     }
     json_decref(result);
   }
-  return U_OK;
+  json_decref(json_body);
+  return U_CALLBACK_CONTINUE;
 }
 
 /**
@@ -491,24 +497,23 @@ int callback_service_liquidsoap_add (const struct _u_request * request, struct _
  * update the specified liquidsoap
  */
 int callback_service_liquidsoap_set (const struct _u_request * request, struct _u_response * response, void * user_data) {
-  json_t * result, * liquidsoap;
+  json_t * result, * liquidsoap, * json_body = ulfius_get_json_body_request(request, NULL);
   
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_liquidsoap_set - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
     liquidsoap = liquidsoap_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "element_id"));
     if (liquidsoap != NULL && json_integer_value(json_object_get(liquidsoap, "result")) == WEBSERVICE_RESULT_NOT_FOUND) {
       response->status = 404;
     } else if (liquidsoap != NULL && json_integer_value(json_object_get(liquidsoap, "result")) == WEBSERVICE_RESULT_OK) {
-      result = liquidsoap_set((struct _carleon_config *)user_data, u_map_get(request->map_url, "element_id"), request->json_body);
+      result = liquidsoap_set((struct _carleon_config *)user_data, u_map_get(request->map_url, "element_id"), json_body);
       if (result == NULL) {
         y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_liquidsoap_set - Error in liquidsoap_set");
         response->status = 500;
       } else if (json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_PARAM) {
-        response->json_body = json_copy(json_object_get(result, "reason"));
-        response->status = 400;
+        set_response_json_body_and_clean(response, 400, json_copy(json_object_get(result, "reason")));
       }
       json_decref(result);
     } else {
@@ -517,7 +522,8 @@ int callback_service_liquidsoap_set (const struct _u_request * request, struct _
     }
     json_decref(liquidsoap);
   }
-  return U_OK;
+  json_decref(json_body);
+  return U_CALLBACK_CONTINUE;
 }
 
 /**
@@ -530,7 +536,7 @@ int callback_service_liquidsoap_remove (const struct _u_request * request, struc
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_liquidsoap_remove - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
     liquidsoap = liquidsoap_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "element_id"));
     if (liquidsoap != NULL && json_integer_value(json_object_get(liquidsoap, "result")) == WEBSERVICE_RESULT_NOT_FOUND) {
@@ -541,8 +547,7 @@ int callback_service_liquidsoap_remove (const struct _u_request * request, struc
         y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_liquidsoap_remove - Error in liquidsoap_remove");
         response->status = 500;
       } else if (json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_PARAM) {
-        response->json_body = json_copy(json_object_get(result, "reason"));
-        response->status = 400;
+        set_response_json_body_and_clean(response, 400, json_copy(json_object_get(result, "reason")));
       }
       json_decref(result);
     } else {
@@ -551,7 +556,7 @@ int callback_service_liquidsoap_remove (const struct _u_request * request, struc
     }
     json_decref(liquidsoap);
   }
-  return U_OK;
+  return U_CALLBACK_CONTINUE;
 }
 
 int callback_service_liquidsoap_list (const struct _u_request * request, struct _u_response * response, void * user_data) {
@@ -560,7 +565,7 @@ int callback_service_liquidsoap_list (const struct _u_request * request, struct 
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_liquidsoap_list - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
     liquidsoap = liquidsoap_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "element_id"));
     if (liquidsoap != NULL && json_integer_value(json_object_get(liquidsoap, "result")) == WEBSERVICE_RESULT_NOT_FOUND) {
@@ -571,10 +576,9 @@ int callback_service_liquidsoap_list (const struct _u_request * request, struct 
         y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_liquidsoap_list - Error in liquidsoap_list");
         response->status = 500;
       } else if (json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_PARAM) {
-        response->json_body = json_copy(json_object_get(result, "reason"));
-        response->status = 400;
+        set_response_json_body_and_clean(response, 400, json_copy(json_object_get(result, "reason")));
       } else {
-				response->json_body = json_copy(json_object_get(result, "list"));
+        set_response_json_body_and_clean(response, 200, json_copy(json_object_get(result, "list")));
 			}
       json_decref(result);
     } else {
@@ -583,7 +587,7 @@ int callback_service_liquidsoap_list (const struct _u_request * request, struct 
     }
     json_decref(liquidsoap);
   }
-  return U_OK;
+  return U_CALLBACK_CONTINUE;
 }
 
 int callback_service_liquidsoap_on_air (const struct _u_request * request, struct _u_response * response, void * user_data) {
@@ -592,7 +596,7 @@ int callback_service_liquidsoap_on_air (const struct _u_request * request, struc
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_liquidsoap_on_air - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
     liquidsoap = liquidsoap_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "element_id"));
     if (liquidsoap != NULL && json_integer_value(json_object_get(liquidsoap, "result")) == WEBSERVICE_RESULT_NOT_FOUND) {
@@ -603,10 +607,9 @@ int callback_service_liquidsoap_on_air (const struct _u_request * request, struc
         y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_liquidsoap_on_air - Error in liquidsoap_on_air");
         response->status = 500;
       } else if (json_integer_value(json_object_get(result, "result")) == WEBSERVICE_RESULT_PARAM) {
-        response->json_body = json_copy(json_object_get(result, "reason"));
-        response->status = 400;
+        set_response_json_body_and_clean(response, 400, json_copy(json_object_get(result, "reason")));
       } else {
-				response->json_body = json_copy(json_object_get(result, "on_air"));
+        set_response_json_body_and_clean(response, 200, json_copy(json_object_get(result, "on_air")));
 			}
       json_decref(result);
     } else {
@@ -615,7 +618,7 @@ int callback_service_liquidsoap_on_air (const struct _u_request * request, struc
     }
     json_decref(liquidsoap);
   }
-  return U_OK;
+  return U_CALLBACK_CONTINUE;
 }
 
 int callback_service_liquidsoap_command (const struct _u_request * request, struct _u_response * response, void * user_data) {
@@ -624,7 +627,7 @@ int callback_service_liquidsoap_command (const struct _u_request * request, stru
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_service_liquidsoap_command - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
     liquidsoap = liquidsoap_get((struct _carleon_config *)user_data, u_map_get(request->map_url, "element_id"));
     if (liquidsoap != NULL && json_integer_value(json_object_get(liquidsoap, "result")) == WEBSERVICE_RESULT_NOT_FOUND) {
@@ -637,7 +640,7 @@ int callback_service_liquidsoap_command (const struct _u_request * request, stru
       } else if (json_integer_value(json_object_get(j_result, "result")) == WEBSERVICE_RESULT_PARAM) {
 				response->status = 400;
       } else if (json_object_get(j_result, "value") != NULL) {
-				response->json_body = json_pack("{so}", "value", json_copy(json_object_get(j_result, "value")));
+        set_response_json_body_and_clean(response, 200, json_pack("{so}", "value", json_copy(json_object_get(j_result, "value"))));
 			}
 			json_decref(j_result);
     } else {
@@ -646,21 +649,21 @@ int callback_service_liquidsoap_command (const struct _u_request * request, stru
     }
     json_decref(liquidsoap);
   }
-  return U_OK;
+  return U_CALLBACK_CONTINUE;
 }
 
 json_t * c_service_init(struct _carleon_config * config) {
 	y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (config != NULL) {
-    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-liquidsoap/@element_id", NULL, NULL, NULL, &callback_service_liquidsoap_get, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-liquidsoap/", NULL, NULL, NULL, &callback_service_liquidsoap_get, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "POST", config->url_prefix, "/service-liquidsoap/", NULL, NULL, NULL, &callback_service_liquidsoap_add, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-liquidsoap/@element_id", NULL, NULL, NULL, &callback_service_liquidsoap_set, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "DELETE", config->url_prefix, "/service-liquidsoap/@element_id", NULL, NULL, NULL, &callback_service_liquidsoap_remove, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-liquidsoap/@element_id", 2, &callback_service_liquidsoap_get, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-liquidsoap/", 2, &callback_service_liquidsoap_get, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "POST", config->url_prefix, "/service-liquidsoap/", 2, &callback_service_liquidsoap_add, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service-liquidsoap/@element_id", 2, &callback_service_liquidsoap_set, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "DELETE", config->url_prefix, "/service-liquidsoap/@element_id", 2, &callback_service_liquidsoap_remove, (void*)config);
 
-    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-liquidsoap/@element_id/list", NULL, NULL, NULL, &callback_service_liquidsoap_list, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-liquidsoap/@element_id/on_air", NULL, NULL, NULL, &callback_service_liquidsoap_on_air, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-liquidsoap/@element_id/command/@command_name", NULL, NULL, NULL, &callback_service_liquidsoap_command, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-liquidsoap/@element_id/list", 2, &callback_service_liquidsoap_list, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-liquidsoap/@element_id/on_air", 2, &callback_service_liquidsoap_on_air, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service-liquidsoap/@element_id/command/@command_name", 2, &callback_service_liquidsoap_command, (void*)config);
     
     return json_pack("{sissss}", 
                       "result", WEBSERVICE_RESULT_OK,

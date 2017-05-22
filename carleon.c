@@ -34,12 +34,12 @@
 int init_carleon(struct _carleon_config * config) {
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (config != NULL) {
-    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service/", NULL, NULL, NULL, &callback_carleon_service_get, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/reload", NULL, NULL, NULL, &callback_carleon_service_reload, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/@service_name/enable/@enable_value", NULL, NULL, NULL, &callback_carleon_service_enable, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/@service_name/@element_id/cleanup", NULL, NULL, NULL, &callback_carleon_service_element_cleanup, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/@service_name/@element_id/@tag", NULL, NULL, NULL, &callback_carleon_service_element_add_tag, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "DELETE", config->url_prefix, "/service/@service_name/@element_id/@tag", NULL, NULL, NULL, &callback_carleon_service_element_remove_tag, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service/", 2, &callback_carleon_service_get, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/reload", 2, &callback_carleon_service_reload, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/@service_name/enable/@enable_value", 2, &callback_carleon_service_enable, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/@service_name/cleanup/@element_id", 2, &callback_carleon_service_element_cleanup, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/@service_name/tag/@element_id/@tag", 2, &callback_carleon_service_element_add_tag, (void*)config);
+    ulfius_add_endpoint_by_val(config->instance, "DELETE", config->url_prefix, "/service/@service_name/tag/@element_id/@tag", 2, &callback_carleon_service_element_remove_tag, (void*)config);
 
     if (init_service_list(config) == C_OK) {
       if (connect_enabled_services(config) == C_OK) {
@@ -127,10 +127,10 @@ int init_service_list(struct _carleon_config * config) {
     }
     
     while ((in_file = readdir(services_directory))) {
-      if (!nstrcmp (in_file->d_name, ".")) {
+      if (!o_strcmp (in_file->d_name, ".")) {
         continue;
       }
-      if (!nstrcmp (in_file->d_name, "..")) {
+      if (!o_strcmp (in_file->d_name, "..")) {
         continue;
       }
       
@@ -161,8 +161,8 @@ int init_service_list(struct _carleon_config * config) {
             (cur_service.c_service_exec != NULL)) {
           y_log_message(Y_LOG_LEVEL_INFO, "Adding service from file %s", file_path);
           service_handshake = (*cur_service.c_service_init)(config);
-          cur_service.name = nstrdup(json_string_value(json_object_get(service_handshake, "name")));
-          cur_service.description = nstrdup(json_string_value(json_object_get(service_handshake, "description")));
+          cur_service.name = o_strdup(json_string_value(json_object_get(service_handshake, "name")));
+          cur_service.description = o_strdup(json_string_value(json_object_get(service_handshake, "description")));
           json_decref(service_handshake);
           service_handshake = NULL;
           
@@ -294,7 +294,7 @@ struct _carleon_service * get_service_from_name(struct _carleon_config * config,
   }
   
   for (i=0; config->service_list[i].name != NULL; i++) {
-    if (0 == nstrcmp(config->service_list[i].name, name)) {
+    if (0 == o_strcmp(config->service_list[i].name, name)) {
       return (config->service_list + i);
     }
   }
@@ -353,14 +353,16 @@ int callback_carleon_service_get (const struct _u_request * request, struct _u_r
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
-    response->json_body = service_get((struct _carleon_config *)user_data, NULL);
-    if (response->json_body == NULL) {
+    json_t * json_body = service_get((struct _carleon_config *)user_data, NULL);
+    if (json_body == NULL) {
       y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error getting service list, aborting");
       response->status = 500;
+    } else {
+      set_response_json_body_and_clean(response, 200, json_body);
     }
-    return U_OK;
+    return U_CALLBACK_CONTINUE;
   }
 }
 
@@ -368,15 +370,17 @@ int callback_carleon_service_reload (const struct _u_request * request, struct _
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
     if (close_service_list(((struct _carleon_config *)user_data)) == C_OK) {
       if (init_service_list(((struct _carleon_config *)user_data)) == C_OK) {
         if (connect_enabled_services(((struct _carleon_config *)user_data)) == C_OK) {
-          response->json_body = service_get((struct _carleon_config *)user_data, NULL);
-          if (response->json_body == NULL) {
+          json_t * json_body = service_get((struct _carleon_config *)user_data, NULL);
+          if (json_body == NULL) {
             y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error getting service list, aborting");
             response->status = 500;
+          } else {
+            set_response_json_body_and_clean(response, 200, json_body);
           }
         } else {
           y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error enabling services");
@@ -390,7 +394,7 @@ int callback_carleon_service_reload (const struct _u_request * request, struct _
       y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error closing service list");
       response->status = 500;
     }
-    return U_OK;
+    return U_CALLBACK_CONTINUE;
   }
 }
 
@@ -400,19 +404,19 @@ int callback_carleon_service_enable (const struct _u_request * request, struct _
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
-    res = service_enable((struct _carleon_config *)user_data, u_map_get(request->map_url, "service_name"), 0 == nstrcmp(u_map_get(request->map_url, "enable_value"), "1")?1:0);
+    res = service_enable((struct _carleon_config *)user_data, u_map_get(request->map_url, "service_name"), 0 == o_strcmp(u_map_get(request->map_url, "enable_value"), "1")?1:0);
     if (res == C_OK) {
-      return U_OK;
+      return U_CALLBACK_CONTINUE;
     } else if (res == C_ERROR_NOT_FOUND) {
-      ulfius_set_json_response(response, 404, json_pack("{ss}", "error", "service not found"));
+      set_response_json_body_and_clean(response, 404, json_pack("{ss}", "error", "service not found"));
     } else if (res == C_ERROR_PARAM) {
-      ulfius_set_json_response(response, 400, json_pack("{ss}", "error", "enable_value must be 0 or 1"));
+      set_response_json_body_and_clean(response, 400, json_pack("{ss}", "error", "enable_value must be 0 or 1"));
     } else {
       response->status = 500;
     }
-    return U_OK;
+    return U_CALLBACK_CONTINUE;
   }
 }
 
@@ -422,19 +426,19 @@ int callback_carleon_service_element_add_tag (const struct _u_request * request,
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_element_add_tag - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
     res = service_element_add_tag((struct _carleon_config *)user_data, u_map_get(request->map_url, "service_name"), u_map_get(request->map_url, "element_id"), u_map_get(request->map_url, "tag"));
     if (res == C_OK) {
-      return U_OK;
+      return U_CALLBACK_CONTINUE;
     } else if (res == C_ERROR_NOT_FOUND) {
-      ulfius_set_json_response(response, 404, json_pack("{ss}", "error", "service not found"));
+      set_response_json_body_and_clean(response, 404, json_pack("{ss}", "error", "service not found"));
     } else if (res == C_ERROR_PARAM) {
-      ulfius_set_json_response(response, 400, json_pack("{ss}", "error", "enable_value must be 0 or 1"));
+      set_response_json_body_and_clean(response, 400, json_pack("{ss}", "error", "Error input parameters 1"));
     } else {
       response->status = 500;
     }
-    return U_OK;
+    return U_CALLBACK_CONTINUE;
   }
 }
 
@@ -444,19 +448,19 @@ int callback_carleon_service_element_remove_tag (const struct _u_request * reque
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_element_remove_tag - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
     res = service_element_remove_tag((struct _carleon_config *)user_data, u_map_get(request->map_url, "service_name"), u_map_get(request->map_url, "element_id"), u_map_get(request->map_url, "tag"));
     if (res == C_OK) {
-      return U_OK;
+      return U_CALLBACK_CONTINUE;
     } else if (res == C_ERROR_NOT_FOUND) {
-      ulfius_set_json_response(response, 404, json_pack("{ss}", "error", "service not found"));
+      set_response_json_body_and_clean(response, 404, json_pack("{ss}", "error", "service not found"));
     } else if (res == C_ERROR_PARAM) {
-      ulfius_set_json_response(response, 400, json_pack("{ss}", "error", "enable_value must be 0 or 1"));
+      set_response_json_body_and_clean(response, 400, json_pack("{ss}", "error", "Error input parameters 2"));
     } else {
       response->status = 500;
     }
-    return U_OK;
+    return U_CALLBACK_CONTINUE;
   }
 }
 
@@ -466,18 +470,18 @@ int callback_carleon_service_element_cleanup (const struct _u_request * request,
   y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_element_cleanup - Error, user_data is NULL");
-    return U_ERROR_PARAMS;
+    return U_CALLBACK_ERROR;
   } else {
     res = service_element_cleanup((struct _carleon_config *)user_data, u_map_get(request->map_url, "service_name"), u_map_get(request->map_url, "element_id"));
     if (res == C_OK) {
-      return U_OK;
+      return U_CALLBACK_CONTINUE;
     } else if (res == C_ERROR_NOT_FOUND) {
-      ulfius_set_json_response(response, 404, json_pack("{ss}", "error", "service not found"));
+      set_response_json_body_and_clean(response, 404, json_pack("{ss}", "error", "service not found"));
     } else if (res == C_ERROR_PARAM) {
-      ulfius_set_json_response(response, 400, json_pack("{ss}", "error", "enable_value must be 0 or 1"));
+      set_response_json_body_and_clean(response, 400, json_pack("{ss}", "error", "Error input parameters 3"));
     } else {
       response->status = 500;
     }
-    return U_OK;
+    return U_CALLBACK_CONTINUE;
   }
 }
