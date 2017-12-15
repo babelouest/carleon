@@ -63,7 +63,7 @@ debug: libservicemock.so libservicemotion.so libservicempd.so libserviceliquidso
 
 release: ADDITIONALFLAGS=-O3
 
-release: libservicemotion.so libservicempd.so
+release: libservicemotion.so libservicempd.so libserviceliquidsoap.so
 
 install:
 	mkdir -p $(MODULES_TARGET)
