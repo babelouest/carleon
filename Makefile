@@ -51,7 +51,7 @@ debug: carleon-standalone modules unit-tests
 
 release-standalone: ADDITIONALFLAGS=-O3
 
-release-standalone: carleon-standalone modules
+release-standalone: carleon-standalone
 
 release: ADDITIONALFLAGS=-O3
 
@@ -67,7 +67,7 @@ clean:
 unit-tests: unit-tests.c
 	$(CC) -o unit-tests unit-tests.c -lc -lulfius -lorcania -ljansson -L$(PREFIX)/lib
 
-install-modules: modules
+install-modules:
 	cd $(MODULES_LOCATION) && $(MAKE) install
 
 install-standalone: carleon-standalone install-modules

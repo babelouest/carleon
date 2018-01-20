@@ -446,6 +446,13 @@ int callback_default (const struct _u_request * request, struct _u_response * re
   return U_CALLBACK_CONTINUE;
 }
 
+int callback_carleon_options (const struct _u_request * request, struct _u_response * response, void * user_data) {
+  u_map_put(response->map_header, "Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  u_map_put(response->map_header, "Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  u_map_put(response->map_header, "Access-Control-Max-Age", "1800");
+  return U_CALLBACK_COMPLETE;
+}
+
 /**
  * Main function
  * Benoic application entry point
@@ -514,6 +521,11 @@ int main(int argc, char ** argv) {
     exit_server(&config, CARLEON_ERROR);
   }
   
+  u_map_put(config->c_config->instance->default_headers, "Access-Control-Allow-Origin", "*");
+  u_map_put(config->c_config->instance->default_headers, "Access-Control-Allow-Credentials", "true");
+
+  ulfius_add_endpoint_by_val(config->c_config->instance, "OPTIONS", NULL, "*", 0, &callback_carleon_options, NULL);
+
   // Default endpoint
   ulfius_set_default_endpoint(config->c_config->instance, &callback_default, (void*)config);
   
