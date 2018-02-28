@@ -264,7 +264,8 @@ char * socket_send_command(const char * host, int port, const char * command) {
 	int sockfd;
 	struct sockaddr_in serv_addr;
 	struct hostent * server;
-	size_t len, ret_len = 0;
+	ssize_t len;
+  size_t ret_len = 0;
 	char buffer[256];
 	char * to_return = NULL;
 	
@@ -310,6 +311,7 @@ char * socket_send_command(const char * host, int port, const char * command) {
 }
 
 json_t * liquidsoap_list(struct _carleon_config * config, json_t * liquidsoap) {
+  UNUSED(config);
 	char * command = msprintf("%s.metadata\nquit\n", json_string_value(json_object_get(liquidsoap, "control_request_name")));
 	char * result = socket_send_command(json_string_value(json_object_get(liquidsoap, "control_host")), json_integer_value(json_object_get(liquidsoap, "control_port")), command);
 	char * result_save, * token, * saveptr, * tmp;
@@ -362,6 +364,7 @@ json_t * liquidsoap_list(struct _carleon_config * config, json_t * liquidsoap) {
 }
 
 json_t * liquidsoap_on_air(struct _carleon_config * config, json_t * liquidsoap) {
+  UNUSED(config);
 	char * command = msprintf("%s.metadata\nquit\n", json_string_value(json_object_get(liquidsoap, "control_request_name")));
 	char * result = socket_send_command(json_string_value(json_object_get(liquidsoap, "control_host")), json_integer_value(json_object_get(liquidsoap, "control_port")), command);
 	char * result_save, * token, * saveptr, * tmp;
@@ -407,6 +410,7 @@ json_t * liquidsoap_on_air(struct _carleon_config * config, json_t * liquidsoap)
 }
 
 json_t * liquidsoap_command(struct _carleon_config * config, json_t * liquidsoap, const char * command) {
+  UNUSED(config);
 	char * str_command, * result, * check;
 	json_t * to_return = NULL;
 	
@@ -679,6 +683,7 @@ json_t * c_service_close(struct _carleon_config * config) {
  * 4 commands
  */
 json_t * c_service_command_get_list(struct _carleon_config * config) {
+  UNUSED(config);
   json_t * to_return = json_pack("{siso}", "result", WEBSERVICE_RESULT_OK, "commands", json_object());
   
   if (to_return != NULL) {
@@ -693,5 +698,9 @@ json_t * c_service_element_get_list(struct _carleon_config * config) {
 }
 
 json_t * c_service_exec(struct _carleon_config * config, const char * command, const char * element, json_t * parameters) {
+  UNUSED(config);
+  UNUSED(command);
+  UNUSED(element);
+  UNUSED(parameters);
 	return json_object();
 }

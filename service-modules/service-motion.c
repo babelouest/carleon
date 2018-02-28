@@ -29,7 +29,6 @@
 
 #include <string.h>
 #include <sys/types.h>
-#include <pthread.h>
 #include <dirent.h>
 #include <jansson.h>
 #include <ulfius.h>
@@ -682,6 +681,7 @@ int is_motion_online(struct _carleon_config * config, json_t * service_motion) {
   struct _u_request c_request;
   int to_return = 1;
   
+  UNUSED(config);
   ulfius_init_request(&c_request);
   c_request.http_url = o_strdup(json_string_value(json_object_get(json_object_get(service_motion, "element"), "config_uri")));
 	if (ulfius_send_http_request(&c_request, NULL) != U_OK) {
@@ -724,9 +724,6 @@ int is_motion_online(struct _carleon_config * config, json_t * service_motion) {
 			}
 			if (u_map_get(request->map_url, "offset") != NULL) {
 				offset = strtol(u_map_get(request->map_url, "offset"), NULL, 10);
-				if (offset < 0) {
-					offset = 0;
-				}
 			}
 			json_object_set_new(to_return, "file_list", json_object());
 			json_array_foreach(json_object_get(json_object_get(service_motion, "element"), "file_list"), index, list_object) {
@@ -995,6 +992,7 @@ json_t * c_service_close(struct _carleon_config * config) {
  * send the available commands
  */
 json_t * c_service_command_get_list(struct _carleon_config * config) {
+  UNUSED(config);
   return json_pack("{sis{s{s{ss}}s{s{s{ssso}}s{ss}}}}",
                     "result", WEBSERVICE_RESULT_OK,
                     "commands",

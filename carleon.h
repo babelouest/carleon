@@ -55,6 +55,9 @@
 #define CARLEON_TABLE_SERVICE "c_service"
 #define CARLEON_TABLE_ELEMENT "c_element"
 
+/** Macro to avoid compiler warning when some parameters are unused and that's ok **/
+#define UNUSED(x) (void)(x)
+
 struct _carleon_config {
   char                    * services_path;
   struct _h_connection    * conn;
