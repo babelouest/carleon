@@ -47,7 +47,7 @@ all: release
 
 debug: ADDITIONALFLAGS=-DDEBUG -g -O0
 
-debug: carleon-standalone modules unit-tests
+debug: carleon-standalone modules
 
 release-standalone: ADDITIONALFLAGS=-O3
 
@@ -61,11 +61,8 @@ test: debug
 	./carleon-standalone
 
 clean:
-	rm -f *.o carleon-standalone unit-tests
+	rm -f *.o carleon-standalone
 	cd $(MODULES_LOCATION) && $(MAKE) clean
-
-unit-tests: unit-tests.c
-	$(CC) -o unit-tests unit-tests.c -lc -lulfius -lorcania -ljansson -L$(PREFIX)/lib
 
 install-modules:
 	cd $(MODULES_LOCATION) && $(MAKE) install
