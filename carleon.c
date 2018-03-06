@@ -34,7 +34,6 @@
 int init_carleon(struct _carleon_config * config) {
   if (config != NULL) {
     ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service/", 2, &callback_carleon_service_get, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/reload", 2, &callback_carleon_service_reload, (void*)config);
     ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/@service_name/enable/@enable_value", 2, &callback_carleon_service_enable, (void*)config);
     ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/@service_name/cleanup/@element_id", 2, &callback_carleon_service_element_cleanup, (void*)config);
     ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/@service_name/tag/@element_id/@tag", 2, &callback_carleon_service_element_add_tag, (void*)config);
@@ -352,36 +351,6 @@ int callback_carleon_service_get (const struct _u_request * request, struct _u_r
       response->status = 500;
     } else {
       set_response_json_body_and_clean(response, 200, json_body);
-    }
-    return U_CALLBACK_CONTINUE;
-  }
-}
-
-int callback_carleon_service_reload (const struct _u_request * request, struct _u_response * response, void * user_data) {
-  if (user_data == NULL) {
-    return U_CALLBACK_ERROR;
-  } else {
-    if (close_service_list(((struct _carleon_config *)user_data)) == C_OK) {
-      if (init_service_list(((struct _carleon_config *)user_data)) == C_OK) {
-        if (connect_enabled_services(((struct _carleon_config *)user_data)) == C_OK) {
-          json_t * json_body = service_get((struct _carleon_config *)user_data, NULL);
-          if (json_body == NULL) {
-            y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error getting service list, aborting");
-            response->status = 500;
-          } else {
-            set_response_json_body_and_clean(response, 200, json_body);
-          }
-        } else {
-          y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error enabling services");
-          response->status = 500;
-        }
-      } else {
-        y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error initializing service list");
-        response->status = 500;
-      }
-    } else {
-      y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error closing service list");
-      response->status = 500;
     }
     return U_CALLBACK_CONTINUE;
   }

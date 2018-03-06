@@ -111,7 +111,6 @@ int service_element_remove_tag(struct _carleon_config * config, const char * ser
 
 // Services callback functions
 int callback_carleon_service_get (const struct _u_request * request, struct _u_response * response, void * user_data);
-int callback_carleon_service_reload (const struct _u_request * request, struct _u_response * response, void * user_data);
 int callback_carleon_service_enable (const struct _u_request * request, struct _u_response * response, void * user_data);
 int callback_carleon_service_element_cleanup (const struct _u_request * request, struct _u_response * response, void * user_data);
 int callback_carleon_service_element_add_tag (const struct _u_request * request, struct _u_response * response, void * user_data);
