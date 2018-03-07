@@ -23,14 +23,14 @@ Code 200
 Content
 ```javascript
 [ Array of service-mpd elements
-
     {
         "name": string, name of the element, max 64 chars
         "description": string, description of the element, max 128 chars
         "host": string, host where the mpd instance is hosted, max 128 chars
         "port": integer, port where mpd instance is hosted, if 0 then default
+				"device": string, device which switch is attached to this mpd, max 128 chars
+				"switch": string, switch attached to this mpd, max 128 chars
     }
-
 ]
 ```
 
@@ -67,6 +67,8 @@ Content
 	"description": string, description of the element, max 128 chars
 	"host": string, host where the mpd instance is hosted, max 128 chars
 	"port": integer, port where mpd instance is hosted, if 0 then default
+	"device": string, device which switch is attached to this mpd, max 128 chars
+	"switch": string, switch attached to this mpd, max 128 chars
 }
 ```
 
@@ -101,6 +103,8 @@ service-mpd not found
 	"host": string, host where the mpd instance is hosted, max 128 chars, required
 	"port": integer, port where mpd instance is hosted, if 0 then default mpd port, optional
 	"password": string, password to connect to the mpd instance, max 128 chars, optional
+	"device": string, device which switch is attached to this mpd, max 128 chars, optional
+	"switch": string, switch attached to this mpd, max 128 chars, optional
 }
 ```
 
@@ -147,6 +151,8 @@ Content: json array containing all errors
 	"host": string, host where the mpd instance is hosted, max 128 chars, required
 	"port": integer, port where mpd instance is hosted, if 0 then default mpd port, optional
 	"password": string, password to connect to the mpd instance, max 128 chars, optional
+	"device": string, device which switch is attached to this mpd, max 128 chars, optional
+	"switch": string, switch attached to this mpd, max 128 chars, optional
 }
 ```
 
@@ -234,8 +240,10 @@ Content
     "volume":integer, volume of the player, between 0 and 100
     "elapsed_time":integer, elapsed time of the current song in seconds
     "total_time":integer, total time of the current song in seconds
-    "name":string, Name of the playlist, optional
-    "title":string, title of current song
+		"song_pos":integer, position of the current song in the queue
+		"random":boolean, random state of the mpd
+		"repeat":boolean, repeat status of the mpd
+    "title":string, title of current song, optional
     "artist":string, artist of current song, optional
     "album":string, album of current song, optional
     "date":string, year of current song, optional
@@ -272,7 +280,7 @@ Element not found
 
 `@name`: string, name of the element
 
-`@action_name`, string, name of the action to launch, values can be "stop", "play", "pause"
+`@action_name`, string, name of the action to launch, values can be "stop", "play", "pause", "previous", "next", "random", "repeat"
 
 #### Success response
 

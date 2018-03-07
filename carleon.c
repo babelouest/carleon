@@ -32,10 +32,8 @@
  * Initializes carleon endpoints and services
  */
 int init_carleon(struct _carleon_config * config) {
-  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (config != NULL) {
     ulfius_add_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service/", 2, &callback_carleon_service_get, (void*)config);
-    ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/reload", 2, &callback_carleon_service_reload, (void*)config);
     ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/@service_name/enable/@enable_value", 2, &callback_carleon_service_enable, (void*)config);
     ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/@service_name/cleanup/@element_id", 2, &callback_carleon_service_element_cleanup, (void*)config);
     ulfius_add_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/@service_name/tag/@element_id/@tag", 2, &callback_carleon_service_element_add_tag, (void*)config);
@@ -63,7 +61,6 @@ int init_carleon(struct _carleon_config * config) {
  * Closes carleon endpoints and all services
  */
 int close_carleon(struct _carleon_config * config) {
-  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (config->instance != NULL) {
     ulfius_remove_endpoint_by_val(config->instance, "GET", config->url_prefix, "/service/");
     ulfius_remove_endpoint_by_val(config->instance, "PUT", config->url_prefix, "/service/reload");
@@ -97,8 +94,7 @@ int init_service_list(struct _carleon_config * config) {
   int res;
   size_t nb_service = 0;
   
-  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
-  config->service_list = malloc(sizeof(struct _carleon_service));
+  config->service_list = o_malloc(sizeof(struct _carleon_service));
   
   if (config->conn != NULL && config->services_path != NULL && config->service_list != NULL) {
     config->service_list->dl_handle = NULL;
@@ -168,7 +164,7 @@ int init_service_list(struct _carleon_config * config) {
           
           if (cur_service.name != NULL && cur_service.description != NULL) {
             nb_service++;
-            config->service_list = realloc(config->service_list, (nb_service+1)*sizeof(struct _carleon_service));
+            config->service_list = o_realloc(config->service_list, (nb_service+1)*sizeof(struct _carleon_service));
             if (config->service_list == NULL) {
               y_log_message(Y_LOG_LEVEL_ERROR, "init_service_list - Error allocating resources for service_list");
               close_service_list(config);
@@ -259,7 +255,6 @@ int connect_enabled_services(struct _carleon_config * config) {
   json_t * service_list, * service;
   size_t index;
   
-  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   // Connect all devices that are marked connected in the database
   service_list = service_get(config, NULL);
   if (service_list != NULL) {
@@ -287,7 +282,6 @@ int connect_enabled_services(struct _carleon_config * config) {
 struct _carleon_service * get_service_from_name(struct _carleon_config * config, const char * name) {
   int i;
   
-  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (config == NULL || name == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "get_service_from_name - Error input parameters");
     return NULL;
@@ -305,9 +299,8 @@ struct _carleon_service * get_service_from_name(struct _carleon_config * config,
  * Clean carleon variables
  */
 void clean_carleon(struct _carleon_config * config) {
-  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
-  free(config->services_path);
-  free(config);
+  o_free(config->services_path);
+  o_free(config);
 }
 
 /**
@@ -316,14 +309,13 @@ void clean_carleon(struct _carleon_config * config) {
 int close_service_list(struct _carleon_config * config) {
   int i;
   
-  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (config == NULL) {
     return C_ERROR_PARAM;
   } else {
     for (i=0; config->service_list != NULL && config->service_list[i].name != NULL; i++) {
       close_service((config->service_list + i), config);
     }
-    free(config->service_list);
+    o_free(config->service_list);
     config->service_list = NULL;
     return C_OK;
   }
@@ -335,22 +327,20 @@ int close_service_list(struct _carleon_config * config) {
 void close_service(struct _carleon_service * service, struct _carleon_config * config) {
   json_t * j_result = service->c_service_close(config);
   
-  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (j_result == NULL || json_integer_value(json_object_get(j_result, "result")) != WEBSERVICE_RESULT_OK) {
     y_log_message(Y_LOG_LEVEL_ERROR, "close_service - Error closing service %s", service->name);
   }
   json_decref(j_result);
   
   dlclose(service->dl_handle);
-  free(service->name);
-  free(service->description);
+  o_free(service->name);
+  o_free(service->description);
 }
 
 /**
  * Endpoint functions
  */
 int callback_carleon_service_get (const struct _u_request * request, struct _u_response * response, void * user_data) {
-  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error, user_data is NULL");
     return U_CALLBACK_ERROR;
@@ -366,42 +356,9 @@ int callback_carleon_service_get (const struct _u_request * request, struct _u_r
   }
 }
 
-int callback_carleon_service_reload (const struct _u_request * request, struct _u_response * response, void * user_data) {
-  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
-  if (user_data == NULL) {
-    y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error, user_data is NULL");
-    return U_CALLBACK_ERROR;
-  } else {
-    if (close_service_list(((struct _carleon_config *)user_data)) == C_OK) {
-      if (init_service_list(((struct _carleon_config *)user_data)) == C_OK) {
-        if (connect_enabled_services(((struct _carleon_config *)user_data)) == C_OK) {
-          json_t * json_body = service_get((struct _carleon_config *)user_data, NULL);
-          if (json_body == NULL) {
-            y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error getting service list, aborting");
-            response->status = 500;
-          } else {
-            set_response_json_body_and_clean(response, 200, json_body);
-          }
-        } else {
-          y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error enabling services");
-          response->status = 500;
-        }
-      } else {
-        y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error initializing service list");
-        response->status = 500;
-      }
-    } else {
-      y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error closing service list");
-      response->status = 500;
-    }
-    return U_CALLBACK_CONTINUE;
-  }
-}
-
 int callback_carleon_service_enable (const struct _u_request * request, struct _u_response * response, void * user_data) {
   int res;
   
-  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error, user_data is NULL");
     return U_CALLBACK_ERROR;
@@ -423,7 +380,6 @@ int callback_carleon_service_enable (const struct _u_request * request, struct _
 int callback_carleon_service_element_add_tag (const struct _u_request * request, struct _u_response * response, void * user_data) {
   int res;
   
-  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_element_add_tag - Error, user_data is NULL");
     return U_CALLBACK_ERROR;
@@ -445,7 +401,6 @@ int callback_carleon_service_element_add_tag (const struct _u_request * request,
 int callback_carleon_service_element_remove_tag (const struct _u_request * request, struct _u_response * response, void * user_data) {
   int res;
   
-  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_element_remove_tag - Error, user_data is NULL");
     return U_CALLBACK_ERROR;
@@ -467,7 +422,6 @@ int callback_carleon_service_element_remove_tag (const struct _u_request * reque
 int callback_carleon_service_element_cleanup (const struct _u_request * request, struct _u_response * response, void * user_data) {
   int res;
   
-  y_log_message(Y_LOG_LEVEL_DEBUG, "Entering function %s from file %s", __PRETTY_FUNCTION__, __FILE__);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_element_cleanup - Error, user_data is NULL");
     return U_CALLBACK_ERROR;

@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS `c_service_liquidsoap`;
+
 CREATE TABLE `c_service_liquidsoap` (
   `csl_name` TEXT PRIMARY KEY NOT NULL,
   `csl_description` TEXT,

@@ -1,9 +1,3 @@
-DROP TABLE IF EXISTS `c_mock_service`;
-
-CREATE TABLE `c_mock_service` (
-  `cms_name` TEXT PRIMARY KEY NOT NULL,
-  `cms_description` TEXT
-);
 DROP TABLE IF EXISTS `c_service_motion_file_list`;
 DROP TABLE IF EXISTS `c_service_motion_stream`;
 DROP TABLE IF EXISTS `c_service_motion`;

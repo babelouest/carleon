@@ -1,16 +1,16 @@
 # Carleon API Documentation
 
-Carleon has several endpoints with their own format. Here is the full documentaition of the REST API.
+Carleon has several endpoints with their own format. Here is the full documentation of the REST API.
 
 All the return data are in JSON format.
 
-All URL have the prefix called `CARLEON_PREFIX`, default is `/carleon`. All the URLs given in this dcumentation are relative to `CARLEON_PREFIX`.
+All URL have the prefix called `CARLEON_PREFIX`, default is `/carleon`. All the URLs given in this documentation are relative to `CARLEON_PREFIX`.
 
 This is only carleon API, each carleon services can add their own endpoints, their documentation can be found in [carleon service modules](service-modules/README.md)
 
 ## Authentication
 
-If used within Angharad application, and except when mentionned otherwise, all endpoints require a valid authentication token located in the header or in the cookies. The header or cookies key must be called `"ANGHARAD_SESSION_ID"` and the value must be a valid token value returned b a previous successfull login.
+Except when mentioned otherwise, all endpoints require a valid oauth2 token in Glewlwyd format. The token must contain the scope `angharad`.
 
 ### Get all services available, their description, their elements and their commands
 
