@@ -94,7 +94,7 @@ int init_service_list(struct _carleon_config * config) {
   int res;
   size_t nb_service = 0;
   
-  config->service_list = malloc(sizeof(struct _carleon_service));
+  config->service_list = o_malloc(sizeof(struct _carleon_service));
   
   if (config->conn != NULL && config->services_path != NULL && config->service_list != NULL) {
     config->service_list->dl_handle = NULL;
@@ -164,7 +164,7 @@ int init_service_list(struct _carleon_config * config) {
           
           if (cur_service.name != NULL && cur_service.description != NULL) {
             nb_service++;
-            config->service_list = realloc(config->service_list, (nb_service+1)*sizeof(struct _carleon_service));
+            config->service_list = o_realloc(config->service_list, (nb_service+1)*sizeof(struct _carleon_service));
             if (config->service_list == NULL) {
               y_log_message(Y_LOG_LEVEL_ERROR, "init_service_list - Error allocating resources for service_list");
               close_service_list(config);
@@ -299,8 +299,8 @@ struct _carleon_service * get_service_from_name(struct _carleon_config * config,
  * Clean carleon variables
  */
 void clean_carleon(struct _carleon_config * config) {
-  free(config->services_path);
-  free(config);
+  o_free(config->services_path);
+  o_free(config);
 }
 
 /**
@@ -315,7 +315,7 @@ int close_service_list(struct _carleon_config * config) {
     for (i=0; config->service_list != NULL && config->service_list[i].name != NULL; i++) {
       close_service((config->service_list + i), config);
     }
-    free(config->service_list);
+    o_free(config->service_list);
     config->service_list = NULL;
     return C_OK;
   }
@@ -333,8 +333,8 @@ void close_service(struct _carleon_service * service, struct _carleon_config * c
   json_decref(j_result);
   
   dlclose(service->dl_handle);
-  free(service->name);
-  free(service->description);
+  o_free(service->name);
+  o_free(service->description);
 }
 
 /**

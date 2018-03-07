@@ -300,7 +300,7 @@ char * socket_send_command(const char * host, int port, const char * command) {
 	}
 
 	while ((len = read(sockfd, buffer, 255)) > 0) {
-		to_return = realloc(to_return, ret_len + len + 1);
+		to_return = o_realloc(to_return, ret_len + len + 1);
 		memcpy(to_return + ret_len, buffer, len);
 		ret_len += len;
 	}
@@ -333,8 +333,8 @@ json_t * liquidsoap_list(struct _carleon_config * config, json_t * liquidsoap) {
 				if (0 != o_strncmp(token, "END", strlen("END")) && 0 != o_strncmp(token, "Bye!", strlen("Bye!"))) {
 					char * key, * value;
 					if (strchr(token, '=') != NULL) {
-						key = strndup(token, strchr(token, '=') - token);
-						value = strdup(strchr(token, '=') + 2);
+						key = o_strndup(token, strchr(token, '=') - token);
+						value = o_strdup(strchr(token, '=') + 2);
 						if (strlen(value) > 0) {
 							value[strlen(value) - 1] = '\0';
 						}
@@ -342,9 +342,9 @@ json_t * liquidsoap_list(struct _carleon_config * config, json_t * liquidsoap) {
 						if (o_strstr(LIQUIDSOAP_FIELDS, tmp) != NULL) {
 							json_object_set_new(cur_song, key, json_string(value));
 						}
-						free(tmp);
-						free(key);
-						free(value);
+						o_free(tmp);
+						o_free(key);
+						o_free(value);
 					}
 				} else {
 					json_array_insert_new(json_object_get(to_return, "list"), 0, cur_song);
@@ -353,13 +353,13 @@ json_t * liquidsoap_list(struct _carleon_config * config, json_t * liquidsoap) {
 			}
 			token = strtok_r(NULL, "\n", &saveptr);
 		}
-		free(result_save);
+		o_free(result_save);
 	} else {
 		y_log_message(Y_LOG_LEVEL_ERROR, "liquidsoap_list - Error result is NULL");
 		to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
 	}
 	
-	free(command);
+	o_free(command);
 	return to_return;
 }
 
@@ -379,8 +379,8 @@ json_t * liquidsoap_on_air(struct _carleon_config * config, json_t * liquidsoap)
 			if (0 != o_strncmp(token, "END", strlen("END")) && 0 != o_strncmp(token, "Bye!", strlen("Bye!"))) {
 				char * key, * value;
 				if (strchr(token, '=') != NULL) {
-					key = strndup(token, strchr(token, '=') - token);
-					value = strdup(strchr(token, '=') + 2);
+					key = o_strndup(token, strchr(token, '=') - token);
+					value = o_strdup(strchr(token, '=') + 2);
 					if (strlen(value) > 0) {
 						value[strlen(value) - 1] = '\0';
 					}
@@ -388,9 +388,9 @@ json_t * liquidsoap_on_air(struct _carleon_config * config, json_t * liquidsoap)
 					if (o_strstr(LIQUIDSOAP_FIELDS, tmp) != NULL) {
 						json_object_set_new(cur_song, key, json_string(value));
 					}
-					free(tmp);
-					free(key);
-					free(value);
+					o_free(tmp);
+					o_free(key);
+					o_free(value);
 				}
 			} else {
 				json_object_set_new(to_return, "on_air", cur_song);
@@ -398,14 +398,14 @@ json_t * liquidsoap_on_air(struct _carleon_config * config, json_t * liquidsoap)
 			}
 			token = strtok_r(NULL, "\n", &saveptr);
 		}
-		free(result_save);
+		o_free(result_save);
 	} else {
 		y_log_message(Y_LOG_LEVEL_ERROR, "liquidsoap_on_air - Error result is NULL");
 		json_decref(cur_song);
 		to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
 	}
 	
-	free(command);
+	o_free(command);
 	return to_return;
 }
 
@@ -420,18 +420,18 @@ json_t * liquidsoap_command(struct _carleon_config * config, json_t * liquidsoap
 		result = socket_send_command(json_string_value(json_object_get(liquidsoap, "control_host")), json_integer_value(json_object_get(liquidsoap, "control_port")), str_command);
 		
 		if (result != NULL) {
-			char * value = strndup(result, strchr(result, '\n') - result - 1);
+			char * value = o_strndup(result, strchr(result, '\n') - result - 1);
 			to_return = json_pack("{siss}", "result", WEBSERVICE_RESULT_OK, "value", value);
-			free(value);
+			o_free(value);
 		} else {
 			to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
 		}
-		free(str_command);
-		free(result);
+		o_free(str_command);
+		o_free(result);
 	} else {
 		to_return = json_pack("{si}", "result", WEBSERVICE_RESULT_PARAM);
 	}
-	free(check);
+	o_free(check);
 	
 	return to_return;
 }

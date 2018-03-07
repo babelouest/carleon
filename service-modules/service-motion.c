@@ -654,7 +654,7 @@ json_t * get_available_files(const char * path, size_t count, size_t offset) {
 				} else {
 					y_log_message(Y_LOG_LEVEL_ERROR, "get_available_files - Can not access file %s", ent->d_name);
 				}
-				free(full_path);
+				o_free(full_path);
 			}
 		}
 		closedir (dir);
@@ -767,7 +767,7 @@ void * get_file(const char * full_path, size_t * len) {
 			fseek (f, 0, SEEK_END);
 			*len = ftell (f);
 			fseek (f, 0, SEEK_SET);
-			buffer = malloc(*len*sizeof(void));
+			buffer = o_malloc(*len*sizeof(void));
 			if (buffer) {
 				res = fread (buffer, 1, *len, f);
 				if (res != *len) {
@@ -860,7 +860,7 @@ int callback_service_motion_image (const struct _u_request * request, struct _u_
 					} else {
             set_response_json_body_and_clean(response, 404, json_pack("{ss}", "result", "Image not found"));
 					}
-					free(thumbnail_path);
+					o_free(thumbnail_path);
 				} else {
 					response->binary_body = get_file(full_path, &(response->binary_body_length));
 					if (response->binary_body == NULL) {
@@ -871,7 +871,7 @@ int callback_service_motion_image (const struct _u_request * request, struct _u_
 			} else {
 				response->status = 404;
 			}
-			free(full_path);
+			o_free(full_path);
 		} else {
 			response->status = 404;
 		}
@@ -1021,7 +1021,7 @@ json_t * c_service_exec(struct _carleon_config * config, const char * command, c
 	json_t * service_motion, * result = NULL;
 
 	if (command != NULL) {
-		if (0 == strcmp(command, "online")) {
+		if (0 == o_strcmp(command, "online")) {
 			service_motion = service_motion_get(config, element);
 			if (service_motion != NULL && json_integer_value(json_object_get(service_motion, "result")) == WEBSERVICE_RESULT_OK) {
 				result = json_pack("{sisi}", "result", WEBSERVICE_RESULT_OK, "value", is_motion_online(config, service_motion));
@@ -1029,7 +1029,7 @@ json_t * c_service_exec(struct _carleon_config * config, const char * command, c
 				result = json_pack("{si}", "result", WEBSERVICE_RESULT_ERROR);
 			}
 			json_decref(service_motion);
-		} else if (0 == strcmp(command, "snapshot")) {
+		} else if (0 == o_strcmp(command, "snapshot")) {
 			if (parameters != NULL && json_object_get(parameters, "stream") != NULL) {
 				result = json_pack("{si}", "result", send_snapshot_command(config, element, json_string_value(json_object_get(parameters, "stream"))));
 			} else {
