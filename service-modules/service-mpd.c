@@ -1882,7 +1882,7 @@ json_t * c_service_command_get_list(struct _carleon_config * config) {
                           "parameter", "type", "string", "required", json_false()));
     json_object_set_new(json_object_get(to_return, "commands"), "play_song", json_pack("{s{s{ssso}}}", "parameters",
                           "uri", "type", "string", "required", json_true()));
-    json_object_set_new(json_object_get(to_return, "commands"), "clear_playlist", json_pack("{s{s{}}}", "parameters"));
+    json_object_set_new(json_object_get(to_return, "commands"), "clear_playlist", json_object());
     json_object_set_new(json_object_get(to_return, "commands"), "load_playlist", json_pack("{s{s{ssso}}}", "parameters",
                           "playlist", "type", "string", "required", json_true()));
     json_object_set_new(json_object_get(to_return, "commands"), "set_playlist", json_pack("{s{s{ssso}}}", "parameters",
