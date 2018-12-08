@@ -303,8 +303,8 @@ char * socket_send_command(const char * host, int port, const char * command) {
 		to_return = o_realloc(to_return, ret_len + len + 1);
 		memcpy(to_return + ret_len, buffer, len);
 		ret_len += len;
+    to_return[ret_len] = '\0';
 	}
-	to_return[ret_len] = '\0';
 	close(sockfd);
 	
 	return to_return;
