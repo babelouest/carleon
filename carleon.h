@@ -26,6 +26,9 @@
 #ifndef __CARLEON_H_
 #define __CARLEON_H_
 
+/** Macro to avoid compiler warning when some parameters are unused and that's ok **/
+#define UNUSED(x) (void)(x)
+
 #define _CARLEON_VERSION 1.0
 
 #include <jansson.h>

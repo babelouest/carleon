@@ -24,7 +24,7 @@
 PREFIX=/usr/local
 MODULES_TARGET=$(PREFIX)/lib/angharad/carleon
 CC=gcc
-CFLAGS=-c -fPIC -Wall -D_REENTRANT -shared -nostartfiles -I$(PREFIX)/include $(ADDITIONALFLAGS)
+CFLAGS=-c -fPIC -Wall -Werror -Wextra -D_REENTRANT -shared -nostartfiles -I$(PREFIX)/include $(ADDITIONALFLAGS)
 LIBS=-L$(PREFIX)/lib -lc -ljansson -lyder -lorcania -lulfius
 VERSION=0.1.0
 

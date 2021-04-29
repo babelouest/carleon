@@ -341,6 +341,7 @@ void close_service(struct _carleon_service * service, struct _carleon_config * c
  * Endpoint functions
  */
 int callback_carleon_service_get (const struct _u_request * request, struct _u_response * response, void * user_data) {
+  UNUSED(request);
   if (user_data == NULL) {
     y_log_message(Y_LOG_LEVEL_ERROR, "callback_carleon_service_get - Error, user_data is NULL");
     return U_CALLBACK_ERROR;

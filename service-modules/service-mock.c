@@ -14,6 +14,9 @@
  *
  */
 
+/** Macro to avoid compiler warning when some parameters are unused and that's ok **/
+#define UNUSED(x) (void)(x)
+
 #include <string.h>
 #include <jansson.h>
 #include <ulfius.h>
@@ -38,6 +41,7 @@ int set_response_json_body_and_clean(struct _u_response * response, uint status,
  * }
  */
 json_t * c_service_exec(struct _carleon_config * config, const char * command, const char * element, json_t * parameters) {
+  UNUSED(config);
   char * str_parameters = json_dumps(parameters, JSON_COMPACT);
   y_log_message(Y_LOG_LEVEL_INFO, "mock-service - Executing command '%s' to element '%s' with parameters %s", command, element, str_parameters);
   free(str_parameters);
@@ -271,6 +275,7 @@ json_t * c_service_close(struct _carleon_config * config) {
  * 4 commands
  */
 json_t * c_service_command_get_list(struct _carleon_config * config) {
+  UNUSED(config);
   return json_pack("{\
                     si\
                     s{\
