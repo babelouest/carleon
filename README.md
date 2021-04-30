@@ -2,6 +2,8 @@
 
 House automation side services.
 
+**This repository has been archived because this source code has moved to its [mother project](https://github.com/babelouest/angharad)**
+
 Part of the Angharad system, but you can use it as a standlone program.
 
 Provides the context execution for carleon services.
